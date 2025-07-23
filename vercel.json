@@ -1,0 +1,35 @@
+{
+  "builds": [
+    {
+      "src": "src/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "frontend/dist"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "src/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "OPENAI_API_KEY": "@openai_api_key",
+    "STABILITY_API_KEY": "@stability_api_key",
+    "REPLICATE_API_TOKEN": "@replicate_api_token"
+  },
+  "functions": {
+    "src/main.py": {
+      "maxDuration": 60
+    }
+  }
+}
