@@ -73,5 +73,14 @@ def not_found(error):
 def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
-# For Vercel deployment - must be named 'app'
-# Vercel looks for an 'app' variable in the index.py file
+# Vercel handler
+def handler(request):
+    with app.test_request_context(
+        path=request.path,
+        method=request.method,
+        headers=request.headers,
+        data=request.get_data(as_text=True),
+        query_string=request.query_string
+    ):
+        response = app.full_dispatch_request()
+        return response
