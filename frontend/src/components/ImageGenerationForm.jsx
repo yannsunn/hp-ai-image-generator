@@ -4,6 +4,7 @@ import ImageEditingPanel from './ImageEditingPanel';
 
 const ImageGenerationForm = () => {
   const [prompt, setPrompt] = useState('');
+  const [additionalInstructions, setAdditionalInstructions] = useState(['']); // 追加の指示文
   const [url, setUrl] = useState('');
   const [inputMode, setInputMode] = useState('text'); // 'text' or 'url'
   const [context, setContext] = useState({
@@ -102,19 +103,28 @@ const ImageGenerationForm = () => {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
-      setError('プロンプトを入力してください');
+      setError('メインの指示文を入力してください');
       return;
     }
 
     setIsGenerating(true);
     setError('');
 
+    // すべての指示文を結合
+    const allInstructions = [prompt];
+    additionalInstructions.forEach(instruction => {
+      if (instruction.trim()) {
+        allInstructions.push(instruction.trim());
+      }
+    });
+    const combinedPrompt = allInstructions.join('. ');
+
     try {
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt,
+          prompt: combinedPrompt,
           api: selectedApi,
           context: {
             ...context,
@@ -149,12 +159,31 @@ const ImageGenerationForm = () => {
         setGeneratedImages([...generatedImages, newImage]);
         setTotalCost(totalCost + data.metadata.cost);
         setPrompt('');
+        setAdditionalInstructions(['']);
       }
     } catch (err) {
       setError(err.message || '画像生成に失敗しました');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // 追加の指示文を追加
+  const addInstruction = () => {
+    setAdditionalInstructions([...additionalInstructions, '']);
+  };
+
+  // 指示文を更新
+  const updateInstruction = (index, value) => {
+    const updated = [...additionalInstructions];
+    updated[index] = value;
+    setAdditionalInstructions(updated);
+  };
+
+  // 指示文を削除
+  const removeInstruction = (index) => {
+    const updated = additionalInstructions.filter((_, i) => i !== index);
+    setAdditionalInstructions(updated.length > 0 ? updated : ['']);
   };
 
   const handleEdit = (image) => {
@@ -310,18 +339,57 @@ const ImageGenerationForm = () => {
               )}
             </div>
 
-            {/* プロンプト入力 */}
+            {/* 指示文入力 */}
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                画像の説明
-              </label>
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="生成したい画像の詳細な説明を入力してください..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                rows={4}
-              />
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  メインの指示文
+                </label>
+                <textarea
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="生成したい画像のメインとなる指示を入力してください..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  rows={3}
+                />
+              </div>
+
+              {/* 追加の指示文 */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-gray-700">
+                    追加の指示文
+                  </label>
+                  <button
+                    type="button"
+                    onClick={addInstruction}
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                  >
+                    + 指示を追加
+                  </button>
+                </div>
+                
+                {additionalInstructions.map((instruction, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={instruction}
+                      onChange={(e) => updateInstruction(index, e.target.value)}
+                      placeholder={`追加の指示 ${index + 1}（例：明るい雰囲気で、プロフェッショナルな印象）`}
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    {additionalInstructions.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeInstruction(index)}
+                        className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        削除
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* プロンプト解析結果 */}
