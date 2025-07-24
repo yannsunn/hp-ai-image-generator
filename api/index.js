@@ -85,24 +85,23 @@ export default async function handler(req, res) {
           try {
             const openai = new OpenAI({ apiKey: api_keys.openai });
             const completion = await openai.chat.completions.create({
-              model: 'gpt-3.5-turbo',
+              model: 'gpt-4o-mini',
               messages: [
                 {
                   role: 'system',
-                  content: 'あなたは日本のプロフェッショナルなウェブデザイナーです。ユーザーのプロンプトを解析し、より効果的なAI画像生成プロンプトに改善してください。日本語で回答し、ビジネス用途に適した高品質な仕上がりにしてください。'
+                  content: 'あなたは日本のプロフェッショナルなウェブデザイナーであり、AI画像生成のエキスパートです。ユーザーが入力したプロンプトを、ホームページ用の高品質なビジネス画像生成に最適化してください。\n\n重要なポイント:\n- プロフェッショナルで信頼感のあるビジュアル\n- 日本のビジネス文化に適したデザイン\n- ウェブサイトでの使用に適したアスペクト比やサイズ\n- ターゲットユーザーに訴求する魅力的なビジュアル\n\n最適化されたプロンプトのみを返し、説明は不要です。'
                 },
                 {
                   role: 'user',
-                  content: `以下のプロンプトを改善してください:
-業界: ${context.industry || '不明'}
-コンテンツタイプ: ${context.contentType || '不明'}
-プロンプト: ${prompt}
+                  content: `業界: ${context.industry || '一般'}
+コンテンツタイプ: ${context.contentType || 'ヒーロー'}
+ユーザープロンプト: "${prompt}"
 
-日本のビジネス用途に適した、プロフェッショナルな仕上がりの改善プロンプトを提供してください。`
+このプロンプトを、${context.industry || '一般'}業界のホームページ用${context.contentType || 'ヒーロー'}セクションに適した、プロフェッショナルな日本語ビジネス画像生成用に最適化してください。`
                 }
               ],
-              max_tokens: 200,
-              temperature: 0.7
+              max_tokens: 150,
+              temperature: 0.4
             });
             
             enhancedPrompt = completion.choices[0]?.message?.content || enhancedPrompt;
@@ -159,8 +158,8 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Prompt is required' });
       }
 
-      if (count > 4) {
-        return res.status(400).json({ error: '生成枚数は4枚までです' });
+      if (count > 8) {
+        return res.status(400).json({ error: '生成枚数は8枚までです' });
       }
 
       // API選択ロジック

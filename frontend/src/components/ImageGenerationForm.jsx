@@ -554,9 +554,13 @@ const ImageGenerationForm = () => {
                   <option value="2">2枚</option>
                   <option value="3">3枚</option>
                   <option value="4">4枚</option>
+                  <option value="5">5枚</option>
+                  <option value="6">6枚</option>
+                  <option value="7">7枚</option>
+                  <option value="8">8枚</option>
                 </select>
                 <p className="text-xs text-gray-500 mt-1">
-                  複数枚生成してベストを選べます
+                  最大8枚まで同時生成可能です
                 </p>
               </div>
               
