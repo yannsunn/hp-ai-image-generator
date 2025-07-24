@@ -7,3 +7,4 @@ numpy==1.26.2
 requests==2.31.0
 aiohttp==3.9.1
 replicate==0.22.0
+beautifulsoup4==4.12.2

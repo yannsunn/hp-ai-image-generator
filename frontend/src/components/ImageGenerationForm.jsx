@@ -4,6 +4,8 @@ import ImageEditingPanel from './ImageEditingPanel';
 
 const ImageGenerationForm = () => {
   const [prompt, setPrompt] = useState('');
+  const [url, setUrl] = useState('');
+  const [inputMode, setInputMode] = useState('text'); // 'text' or 'url'
   const [context, setContext] = useState({
     industry: '',
     contentType: ''
@@ -16,6 +18,8 @@ const ImageGenerationForm = () => {
   const [promptAnalysis, setPromptAnalysis] = useState(null);
   const [editingImage, setEditingImage] = useState(null);
   const [totalCost, setTotalCost] = useState(0);
+  const [urlContent, setUrlContent] = useState(null);
+  const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
 
   // APIの可用性をチェック
   useEffect(() => {
@@ -58,6 +62,44 @@ const ImageGenerationForm = () => {
     }
   };
 
+  // URLからコンテンツを解析
+  const analyzeUrl = async () => {
+    if (!url.trim()) {
+      setError('URLを入力してください');
+      return;
+    }
+
+    setIsAnalyzingUrl(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/analyze/url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'URL解析に失敗しました');
+      }
+
+      if (data.success) {
+        setUrlContent(data.content);
+        setPrompt(data.suggested_prompt);
+        setContext({
+          industry: data.industry || '',
+          contentType: data.content_type || ''
+        });
+      }
+    } catch (err) {
+      setError(err.message || 'URL解析に失敗しました');
+    } finally {
+      setIsAnalyzingUrl(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError('プロンプトを入力してください');
@@ -74,7 +116,16 @@ const ImageGenerationForm = () => {
         body: JSON.stringify({
           prompt,
           api: selectedApi,
-          context,
+          context: {
+            ...context,
+            source_url: inputMode === 'url' ? url : undefined,
+            locale: 'ja-JP', // 日本向け設定
+            style_preferences: {
+              ethnicity: 'japanese',
+              cultural_context: 'japan',
+              text_language: 'japanese'
+            }
+          },
           options: {}
         })
       });
@@ -193,6 +244,70 @@ const ImageGenerationForm = () => {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* 入力モード切り替え */}
+            <div className="mb-6">
+              <div className="flex space-x-4 mb-4">
+                <button
+                  onClick={() => setInputMode('text')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    inputMode === 'text' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  テキストで指定
+                </button>
+                <button
+                  onClick={() => setInputMode('url')}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    inputMode === 'url' 
+                      ? 'bg-purple-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  ホームページURLから生成
+                </button>
+              </div>
+
+              {/* URL入力セクション */}
+              {inputMode === 'url' && (
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    ホームページURL
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://example.jp"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                    <button
+                      onClick={analyzeUrl}
+                      disabled={isAnalyzingUrl || !url.trim()}
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isAnalyzingUrl ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          解析中
+                        </>
+                      ) : (
+                        '解析'
+                      )}
+                    </button>
+                  </div>
+                  {urlContent && (
+                    <div className="mt-2 p-3 bg-blue-50 rounded-lg text-sm">
+                      <p className="font-medium text-blue-900">サイト解析完了</p>
+                      <p className="text-blue-700">{urlContent.title}</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* プロンプト入力 */}

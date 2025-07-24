@@ -16,37 +16,43 @@ class ContentAnalyzer:
     """ホームページコンテンツ解析エンジン"""
     
     def __init__(self):
-        # 業界別のスタイルマッピング
+        # 業界別のスタイルマッピング（日本向けに更新）
         self.industry_styles = {
             'technology': {
                 'colors': ['blue', 'white', 'gray', 'black'],
                 'styles': ['modern', 'minimalist', 'clean', 'futuristic'],
-                'elements': ['geometric shapes', 'abstract patterns', 'tech devices']
+                'elements': ['geometric shapes', 'abstract patterns', 'tech devices', 'Japanese office workers'],
+                'japanese_context': 'Japanese business professionals, Tokyo office setting'
             },
             'healthcare': {
                 'colors': ['blue', 'green', 'white', 'teal'],
                 'styles': ['professional', 'clean', 'trustworthy', 'calming'],
-                'elements': ['medical symbols', 'nature', 'people smiling']
+                'elements': ['medical symbols', 'nature', 'Japanese medical staff', 'clean clinic'],
+                'japanese_context': 'Japanese doctors and nurses, modern Japanese hospital'
             },
             'education': {
                 'colors': ['blue', 'green', 'orange', 'yellow'],
                 'styles': ['friendly', 'approachable', 'inspiring', 'bright'],
-                'elements': ['books', 'students', 'campus', 'learning tools']
+                'elements': ['books', 'Japanese students', 'Japanese school', 'learning tools'],
+                'japanese_context': 'Japanese students in uniform, Japanese classroom setting'
             },
             'restaurant': {
                 'colors': ['warm tones', 'red', 'orange', 'brown'],
                 'styles': ['inviting', 'appetizing', 'cozy', 'elegant'],
-                'elements': ['food', 'dining atmosphere', 'chef', 'ingredients']
+                'elements': ['Japanese cuisine', 'dining atmosphere', 'Japanese chef', 'fresh ingredients'],
+                'japanese_context': 'Japanese restaurant interior, Japanese food presentation'
             },
             'fashion': {
                 'colors': ['black', 'white', 'gold', 'brand colors'],
                 'styles': ['elegant', 'trendy', 'sophisticated', 'artistic'],
-                'elements': ['models', 'clothing', 'accessories', 'lifestyle']
+                'elements': ['Japanese models', 'clothing', 'accessories', 'Tokyo fashion'],
+                'japanese_context': 'Japanese fashion models, Harajuku or Ginza setting'
             },
             'finance': {
                 'colors': ['blue', 'green', 'gray', 'gold'],
                 'styles': ['professional', 'trustworthy', 'stable', 'corporate'],
-                'elements': ['graphs', 'buildings', 'currency symbols', 'handshakes']
+                'elements': ['graphs', 'Tokyo buildings', 'yen symbols', 'Japanese business people'],
+                'japanese_context': 'Japanese business professionals, Tokyo financial district'
             }
         }
         
@@ -200,8 +206,14 @@ class ContentAnalyzer:
         return [x for x in recommendations if not (x in seen or seen.add(x))][:3]
     
     def _enhance_prompt(self, original_prompt: str, industry: str, content_type: str, styles: List[str]) -> str:
-        """プロンプトを拡張して品質を向上"""
+        """プロンプトを拡張して品質を向上（日本向け）"""
         enhancements = []
+        
+        # 日本向けの文脈を追加
+        if industry in self.industry_styles:
+            japanese_context = self.industry_styles[industry].get('japanese_context', '')
+            if japanese_context:
+                enhancements.append(japanese_context)
         
         # スタイルの追加
         if styles:
@@ -214,11 +226,12 @@ class ContentAnalyzer:
                 enhancements.append(f"incorporating {elements[0]}")
         
         # 品質指定の追加
-        quality_terms = ['high-resolution', 'professional quality', 'detailed']
+        quality_terms = ['high-resolution', 'professional quality', 'photorealistic']
         enhancements.append(quality_terms[0])
         
-        # ホームページ用の指定
-        enhancements.append('suitable for modern website')
+        # 日本のホームページ用の指定
+        enhancements.append('suitable for Japanese business website')
+        enhancements.append('culturally appropriate for Japan')
         
         # 拡張プロンプトの構築
         enhanced = f"{original_prompt}, {', '.join(enhancements)}"

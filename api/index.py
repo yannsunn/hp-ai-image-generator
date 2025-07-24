@@ -16,6 +16,7 @@ from content_analyzer import ContentAnalyzer
 from image_editor import ImageEditor
 from routes.image_generation import image_generation_bp
 from routes.image_editing import image_editing_bp
+from routes.url_analysis import url_analysis_bp
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -37,6 +38,7 @@ app.image_editor = ImageEditor()
 # Register blueprints
 app.register_blueprint(image_generation_bp, url_prefix='/api')
 app.register_blueprint(image_editing_bp, url_prefix='/api/edit')
+app.register_blueprint(url_analysis_bp, url_prefix='/api')
 
 # Root endpoint
 @app.route('/')
