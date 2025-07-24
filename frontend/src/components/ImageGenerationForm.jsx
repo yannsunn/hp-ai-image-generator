@@ -668,6 +668,16 @@ const ImageGenerationForm = () => {
                     </p>
                   </div>
 
+                  {/* Hidden username field for accessibility */}
+                  <input
+                    type="text"
+                    name="username"
+                    autoComplete="username"
+                    style={{ display: 'none' }}
+                    value=""
+                    onChange={() => {}}
+                  />
+
                   {/* OpenAI API Key */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -675,6 +685,7 @@ const ImageGenerationForm = () => {
                     </label>
                     <input
                       type="password"
+                      name="openai-key"
                       value={apiKeys.openai}
                       onChange={(e) => setApiKeys({...apiKeys, openai: e.target.value})}
                       placeholder="sk-..."
@@ -693,6 +704,7 @@ const ImageGenerationForm = () => {
                     </label>
                     <input
                       type="password"
+                      name="stability-key"
                       value={apiKeys.stability}
                       onChange={(e) => setApiKeys({...apiKeys, stability: e.target.value})}
                       placeholder="sk-..."
@@ -711,6 +723,7 @@ const ImageGenerationForm = () => {
                     </label>
                     <input
                       type="password"
+                      name="replicate-token"
                       value={apiKeys.replicate}
                       onChange={(e) => setApiKeys({...apiKeys, replicate: e.target.value})}
                       placeholder="r8_..."
