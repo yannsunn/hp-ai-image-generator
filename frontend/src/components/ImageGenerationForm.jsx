@@ -103,7 +103,7 @@ const ImageGenerationForm = () => {
     setError('');
 
     try {
-      const response = await fetch('/api/analyze/url', {
+      const response = await fetch('/api/analyze-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -125,6 +125,16 @@ const ImageGenerationForm = () => {
           industry: data.industry || '',
           contentType: data.content_type || ''
         });
+        
+        // スタイル提案も反映
+        if (data.style_suggestions) {
+          setPromptAnalysis(prev => ({
+            ...prev,
+            style_suggestions: data.style_suggestions.style_keywords || [],
+            color_palette: data.style_suggestions.color_palette || [],
+            composition: data.style_suggestions.composition || {}
+          }));
+        }
       }
     } catch (err) {
       setError(err.message || 'URL解析に失敗しました');
@@ -411,6 +421,11 @@ const ImageGenerationForm = () => {
                     <div className="mt-2 p-3 bg-blue-50 rounded-lg text-sm">
                       <p className="font-medium text-blue-900">サイト解析完了</p>
                       <p className="text-blue-700">{urlContent.title}</p>
+                      {context.industry && (
+                        <p className="text-blue-600 mt-1">
+                          業界: {context.industry} / タイプ: {context.contentType}
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>

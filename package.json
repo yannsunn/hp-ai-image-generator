@@ -1,7 +1,14 @@
 {
   "name": "hp-ai-image-generator",
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "build": "cd frontend && npm install && npm run build"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "cheerio": "^1.0.0-rc.12",
+    "openai": "^4.20.1",
+    "replicate": "^0.22.0"
   }
 }
