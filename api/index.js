@@ -1,5 +1,5 @@
 export default function handler(req, res) {
-  const { method, url } = req;
+  const { method, url, query } = req;
   
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -16,8 +16,12 @@ export default function handler(req, res) {
   }
 
   try {
+    // Extract the path from the query parameter
+    const path = query?.path || url || '';
+    console.log('API Request:', { method, path, body: req.body });
+
     // Health check endpoint
-    if (url === '/api/health' || url === '/api') {
+    if (path === 'health' || path === '' || path === '/') {
       return res.status(200).json({
         status: 'healthy',
         message: 'API is running',
@@ -26,7 +30,7 @@ export default function handler(req, res) {
     }
 
     // Available APIs endpoint
-    if (url === '/api/apis/available' && method === 'POST') {
+    if (path === 'apis/available' && method === 'POST') {
       const { api_keys = {} } = req.body || {};
       const available = [];
       
@@ -41,7 +45,7 @@ export default function handler(req, res) {
     }
 
     // Analyze endpoint
-    if (url === '/api/analyze' && method === 'POST') {
+    if (path === 'analyze' && method === 'POST') {
       return res.status(200).json({
         success: true,
         analysis: {
@@ -61,7 +65,7 @@ export default function handler(req, res) {
     }
 
     // Generate endpoint (simplified)
-    if (url === '/api/generate' && method === 'POST') {
+    if (path === 'generate' && method === 'POST') {
       const { prompt, api_keys = {} } = req.body || {};
       
       if (!prompt) {
@@ -81,8 +85,50 @@ export default function handler(req, res) {
       });
     }
 
+    // Batch generate endpoint
+    if (path === 'generate/batch' && method === 'POST') {
+      const { prompt, count = 1, api_keys = {} } = req.body || {};
+      
+      if (!prompt) {
+        return res.status(400).json({ error: 'Prompt is required' });
+      }
+
+      // For demo purposes, return placeholder responses
+      const images = [];
+      for (let i = 0; i < count; i++) {
+        images.push({
+          index: i,
+          image: `data:image/svg+xml;base64,${Buffer.from(`<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg"><rect width="400" height="400" fill="#f0f0f0"/><text x="50%" y="50%" text-anchor="middle" dy=".3em" font-family="Arial" font-size="20" fill="#999">画像 ${i + 1}</text></svg>`).toString('base64')}`,
+          metadata: {
+            original_prompt: prompt,
+            enhanced_prompt: prompt + ' - Professional Japanese style',
+            api_used: 'demo',
+            cost: 0,
+            analysis: {
+              content_type: 'general',
+              industry: 'general',
+              style_suggestions: ['professional', 'clean', 'modern'],
+              color_palette: ['blue', 'white', 'gray']
+            }
+          }
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        images,
+        errors: [],
+        total_cost: 0,
+        summary: {
+          requested: count,
+          generated: count,
+          failed: 0
+        }
+      });
+    }
+
     // URL analysis endpoint
-    if (url === '/api/analyze/url' && method === 'POST') {
+    if (path === 'analyze/url' && method === 'POST') {
       const { url: targetUrl } = req.body || {};
       
       if (!targetUrl) {
@@ -106,7 +152,8 @@ export default function handler(req, res) {
     // Default 404 response
     return res.status(404).json({
       error: 'Endpoint not found',
-      path: url
+      path: path,
+      method: method
     });
 
   } catch (error) {
