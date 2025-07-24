@@ -12,6 +12,7 @@ const ImageGenerationForm = () => {
     contentType: ''
   });
   const [selectedApi, setSelectedApi] = useState('auto');
+  const [numberOfImages, setNumberOfImages] = useState(1); // 生成枚数
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState([]);
   const [error, setError] = useState('');
@@ -120,12 +121,16 @@ const ImageGenerationForm = () => {
     const combinedPrompt = allInstructions.join('. ');
 
     try {
-      const response = await fetch('/api/generate', {
+      // 複数枚生成の場合はバッチAPIを使用
+      const endpoint = numberOfImages > 1 ? '/api/generate/batch' : '/api/generate';
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: combinedPrompt,
           api: selectedApi,
+          count: numberOfImages,
           context: {
             ...context,
             source_url: inputMode === 'url' ? url : undefined,
@@ -147,17 +152,34 @@ const ImageGenerationForm = () => {
       }
 
       if (data.success) {
-        const newImage = {
-          id: Date.now(),
-          src: data.image,
-          prompt: data.metadata.original_prompt,
-          enhancedPrompt: data.metadata.enhanced_prompt,
-          api: data.metadata.api_used,
-          cost: data.metadata.cost,
-          analysis: data.metadata.analysis
-        };
-        setGeneratedImages([...generatedImages, newImage]);
-        setTotalCost(totalCost + data.metadata.cost);
+        // 単一画像の場合
+        if (numberOfImages === 1) {
+          const newImage = {
+            id: Date.now(),
+            src: data.image,
+            prompt: data.metadata.original_prompt,
+            enhancedPrompt: data.metadata.enhanced_prompt,
+            api: data.metadata.api_used,
+            cost: data.metadata.cost,
+            analysis: data.metadata.analysis
+          };
+          setGeneratedImages([...generatedImages, newImage]);
+          setTotalCost(totalCost + data.metadata.cost);
+        } else {
+          // 複数画像の場合
+          const newImages = data.images.map((img, index) => ({
+            id: Date.now() + index,
+            src: img.image,
+            prompt: img.metadata.original_prompt,
+            enhancedPrompt: img.metadata.enhanced_prompt,
+            api: img.metadata.api_used,
+            cost: img.metadata.cost,
+            analysis: img.metadata.analysis
+          }));
+          setGeneratedImages([...generatedImages, ...newImages]);
+          setTotalCost(totalCost + data.total_cost);
+        }
+        
         setPrompt('');
         setAdditionalInstructions(['']);
       }
@@ -237,6 +259,23 @@ const ImageGenerationForm = () => {
               AI画像生成システム
             </h1>
             <p className="text-gray-600">ホームページ制作に最適な画像を生成・編集</p>
+          </div>
+
+          {/* APIキー設定案内 */}
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-yellow-800 mb-2">🔑 APIキーの設定が必要です</h3>
+            <p className="text-sm text-yellow-700 mb-2">
+              このシステムを使用するには、以下のAPIキーが必要です：
+            </p>
+            <ul className="text-sm text-yellow-700 space-y-1 mb-3">
+              <li>• <strong>OpenAI API Key</strong> - DALL-E 3（高品質な画像生成）</li>
+              <li>• <strong>Stability AI API Key</strong> - Stable Diffusion（アーティスティックな画像）</li>
+              <li>• <strong>Replicate API Token</strong> - リアルな人物画像</li>
+            </ul>
+            <p className="text-xs text-yellow-600">
+              詳しい設定方法は <code className="bg-yellow-100 px-1 py-0.5 rounded">API_SETUP.md</code> をご確認ください。
+              Vercelの環境変数に設定してください。
+            </p>
           </div>
 
           {/* メインフォーム */}
@@ -427,36 +466,65 @@ const ImageGenerationForm = () => {
               </div>
             )}
 
-            {/* API選択と生成ボタン */}
-            <div className="flex flex-col md:flex-row gap-4">
-              <select
-                value={selectedApi}
-                onChange={(e) => setSelectedApi(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="auto">自動選択</option>
-                {availableApis.map(api => (
-                  <option key={api} value={api}>{api.toUpperCase()}</option>
-                ))}
-              </select>
-
-              <button
-                onClick={handleGenerate}
-                disabled={isGenerating || !prompt.trim()}
-                className="flex-1 md:flex-none px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    生成中...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5" />
-                    画像を生成
-                  </>
-                )}
-              </button>
+            {/* API選択と生成設定 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  API選択
+                </label>
+                <select
+                  value={selectedApi}
+                  onChange={(e) => setSelectedApi(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="auto">自動選択（最適なAPIを自動判定）</option>
+                  {availableApis.map(api => (
+                    <option key={api} value={api}>{api.toUpperCase()}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  自動選択：コンテンツに最適なAPIを自動で選びます
+                </p>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  生成枚数
+                </label>
+                <select
+                  value={numberOfImages}
+                  onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="1">1枚</option>
+                  <option value="2">2枚</option>
+                  <option value="3">3枚</option>
+                  <option value="4">4枚</option>
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  複数枚生成してベストを選べます
+                </p>
+              </div>
+              
+              <div className="flex items-end">
+                <button
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !prompt.trim()}
+                  className="w-full px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      {numberOfImages > 1 ? `${numberOfImages}枚生成中...` : '生成中...'}
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5" />
+                      {numberOfImages > 1 ? `${numberOfImages}枚生成` : '画像を生成'}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* エラー表示 */}
