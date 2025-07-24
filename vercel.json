@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
   "builds": [
     {
       "src": "api/index.py",
@@ -10,10 +12,6 @@
     {
       "src": "/api/(.*)",
       "dest": "/api/index.py"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
     }
   ],
   "functions": {

@@ -2,7 +2,6 @@
   "name": "hp-ai-image-generator",
   "version": "1.0.0",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "postbuild": "cp -r frontend/dist public"
+    "build": "cd frontend && npm install && npm run build"
   }
 }
