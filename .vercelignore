@@ -1,0 +1,15 @@
+venv/
+env/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+README.md
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+.env.local
+.DS_Store
