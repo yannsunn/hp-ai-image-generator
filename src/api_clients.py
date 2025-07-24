@@ -23,16 +23,16 @@ class ImageGenerationClient:
     """画像生成APIの統合クライアント"""
     
     def __init__(self):
+        # 環境変数からデフォルトのAPIキーを取得
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
         self.stability_api_key = os.getenv('STABILITY_API_KEY')
         self.replicate_api_token = os.getenv('REPLICATE_API_TOKEN')
         
-        # APIクライアントの初期化
-        if self.openai_api_key:
-            self.openai_client = OpenAI(api_key=self.openai_api_key)
+        # 一時的なAPIキー（リクエストごとに設定可能）
+        self.temp_api_keys = {}
         
-        if self.replicate_api_token:
-            os.environ["REPLICATE_API_TOKEN"] = self.replicate_api_token
+        # APIクライアントの初期化
+        self._init_clients()
         
         # API料金（概算）
         self.pricing = {
@@ -40,6 +40,25 @@ class ImageGenerationClient:
             'stability': {'stable-diffusion': 0.002},  # per step
             'replicate': {'flux': 0.003}  # per second
         }
+    
+    def _init_clients(self):
+        """APIクライアントを初期化"""
+        # 一時的なAPIキーを優先的に使用
+        openai_key = self.temp_api_keys.get('openai') or self.openai_api_key
+        replicate_token = self.temp_api_keys.get('replicate') or self.replicate_api_token
+        
+        if openai_key:
+            self.openai_client = OpenAI(api_key=openai_key)
+        else:
+            self.openai_client = None
+        
+        if replicate_token:
+            os.environ["REPLICATE_API_TOKEN"] = replicate_token
+    
+    def set_api_keys(self, api_keys: Dict[str, str]):
+        """一時的にAPIキーを設定"""
+        self.temp_api_keys = api_keys
+        self._init_clients()
     
     async def generate_image(self, prompt: str, api: str = 'auto', options: Dict[str, Any] = None) -> GenerationResult:
         """単一の画像を生成"""
@@ -72,35 +91,44 @@ class ImageGenerationClient:
         """プロンプトに基づいて最適なAPIを選択"""
         prompt_lower = prompt.lower()
         
+        # 現在利用可能なAPIキーを確認
+        openai_available = self.temp_api_keys.get('openai') or self.openai_api_key
+        stability_available = self.temp_api_keys.get('stability') or self.stability_api_key
+        replicate_available = self.temp_api_keys.get('replicate') or self.replicate_api_token
+        
         # 高品質・プロフェッショナルな画像はDALL-E 3
         if any(keyword in prompt_lower for keyword in ['professional', 'business', 'corporate', 'high quality', 'detailed']):
-            if self.openai_api_key:
+            if openai_available:
                 return 'openai'
         
         # アーティスティックな画像はStable Diffusion
         if any(keyword in prompt_lower for keyword in ['artistic', 'painting', 'illustration', 'anime', 'fantasy']):
-            if self.stability_api_key:
+            if stability_available:
                 return 'stability'
         
         # リアルな画像はFLUX
         if any(keyword in prompt_lower for keyword in ['realistic', 'photo', 'person', 'portrait']):
-            if self.replicate_api_token:
+            if replicate_available:
                 return 'replicate'
         
         # デフォルトは利用可能な最初のAPI
-        if self.openai_api_key:
+        if openai_available:
             return 'openai'
-        elif self.stability_api_key:
+        elif stability_available:
             return 'stability'
-        elif self.replicate_api_token:
+        elif replicate_available:
             return 'replicate'
         else:
             return None
     
     async def _generate_openai(self, prompt: str, options: Dict[str, Any]) -> GenerationResult:
         """OpenAI DALL-E 3で画像生成"""
-        if not self.openai_api_key:
+        openai_key = self.temp_api_keys.get('openai') or self.openai_api_key
+        if not openai_key:
             return GenerationResult(error="OpenAI API key not configured")
+        
+        if not self.openai_client:
+            return GenerationResult(error="OpenAI client not initialized")
         
         try:
             response = self.openai_client.images.generate(
@@ -130,7 +158,8 @@ class ImageGenerationClient:
     
     async def _generate_stability(self, prompt: str, options: Dict[str, Any]) -> GenerationResult:
         """Stability AI Stable Diffusionで画像生成"""
-        if not self.stability_api_key:
+        stability_key = self.temp_api_keys.get('stability') or self.stability_api_key
+        if not stability_key:
             return GenerationResult(error="Stability API key not configured")
         
         try:
@@ -138,7 +167,7 @@ class ImageGenerationClient:
             
             headers = {
                 "Accept": "application/json",
-                "Authorization": f"Bearer {self.stability_api_key}"
+                "Authorization": f"Bearer {stability_key}"
             }
             
             body = {
@@ -169,7 +198,8 @@ class ImageGenerationClient:
     
     async def _generate_replicate(self, prompt: str, options: Dict[str, Any]) -> GenerationResult:
         """Replicate FLUXで画像生成"""
-        if not self.replicate_api_token:
+        replicate_token = self.temp_api_keys.get('replicate') or self.replicate_api_token
+        if not replicate_token:
             return GenerationResult(error="Replicate API token not configured")
         
         try:

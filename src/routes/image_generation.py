@@ -19,6 +19,7 @@ def generate_image():
         api = data.get('api', 'auto')
         options = data.get('options', {})
         context = data.get('context', {})
+        api_keys = data.get('api_keys', {})
         
         # コンテンツ解析
         analyzer = current_app.content_analyzer
@@ -29,6 +30,10 @@ def generate_image():
         
         # 画像生成
         client = current_app.image_client
+        
+        # APIキーを一時的に設定
+        if api_keys:
+            client.set_api_keys(api_keys)
         
         # 非同期処理を同期的に実行
         loop = asyncio.new_event_loop()
@@ -73,21 +78,24 @@ def generate_batch():
     try:
         data = request.get_json()
         
-        # 必須パラメータの検証
-        if not data or 'prompts' not in data:
-            return jsonify({'error': 'Prompts array is required'}), 400
-        
-        prompts = data['prompts']
-        if not isinstance(prompts, list) or len(prompts) == 0:
-            return jsonify({'error': 'Prompts must be a non-empty array'}), 400
-        
-        # 最大バッチサイズの制限
-        if len(prompts) > 10:
-            return jsonify({'error': 'Maximum 10 images per batch'}), 400
+        # 単一プロンプトで複数枚生成の場合の処理
+        if 'prompt' in data and 'count' in data:
+            prompt = data['prompt']
+            count = min(data.get('count', 1), 4)  # 最大4枚
+            prompts = [prompt] * count
+        elif 'prompts' in data:
+            prompts = data['prompts']
+            if not isinstance(prompts, list) or len(prompts) == 0:
+                return jsonify({'error': 'Prompts must be a non-empty array'}), 400
+            if len(prompts) > 10:
+                return jsonify({'error': 'Maximum 10 images per batch'}), 400
+        else:
+            return jsonify({'error': 'Either prompt+count or prompts array is required'}), 400
         
         api = data.get('api', 'auto')
         options = data.get('options', {})
         context = data.get('context', {})
+        api_keys = data.get('api_keys', {})
         
         # 各プロンプトの解析と拡張
         analyzer = current_app.content_analyzer
@@ -101,6 +109,10 @@ def generate_batch():
         
         # バッチ画像生成
         client = current_app.image_client
+        
+        # APIキーを一時的に設定
+        if api_keys:
+            client.set_api_keys(api_keys)
         
         # 非同期処理を同期的に実行
         loop = asyncio.new_event_loop()
@@ -160,6 +172,35 @@ def generate_batch():
         
     except Exception as e:
         return jsonify({'error': f'Batch generation failed: {str(e)}'}), 500
+
+@image_generation_bp.route('/apis/available', methods=['POST'])
+def check_available_apis():
+    """利用可能なAPIをチェック"""
+    try:
+        data = request.get_json()
+        api_keys = data.get('api_keys', {})
+        
+        available = []
+        
+        # OpenAI
+        if api_keys.get('openai'):
+            available.append('openai')
+        
+        # Stability AI
+        if api_keys.get('stability'):
+            available.append('stability')
+        
+        # Replicate
+        if api_keys.get('replicate'):
+            available.append('replicate')
+        
+        return jsonify({
+            'available': available,
+            'count': len(available)
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to check APIs: {str(e)}'}), 500
 
 @image_generation_bp.route('/analyze', methods=['POST'])
 def analyze_prompt():
