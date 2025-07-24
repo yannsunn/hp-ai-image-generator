@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from urllib.parse import urlparse
-import openai
+from openai import OpenAI
 import os
 
 url_analysis_bp = Blueprint('url_analysis', __name__)
@@ -14,6 +14,7 @@ def analyze_url():
     try:
         data = request.json
         url = data.get('url')
+        api_keys = data.get('api_keys', {})
         
         if not url:
             return jsonify({'error': 'URLが指定されていません'}), 400
@@ -74,7 +75,8 @@ def analyze_url():
             text_content=text_content,
             industry=industry,
             content_type=content_type,
-            url=url
+            url=url,
+            api_keys=api_keys
         )
         
         return jsonify({
@@ -133,7 +135,7 @@ def detect_content_type(path, title):
     
     return 'general'
 
-def generate_prompt_from_content(title, description, text_content, industry, content_type, url):
+def generate_prompt_from_content(title, description, text_content, industry, content_type, url, api_keys=None):
     """コンテンツ情報からプロンプトを生成"""
     
     # 日本向けの設定を含むシステムプロンプト
@@ -167,19 +169,26 @@ def generate_prompt_from_content(title, description, text_content, industry, con
 """
 
     try:
-        openai.api_key = os.getenv('OPENAI_API_KEY')
+        # APIキーを取得（リクエストから取得するか環境変数から）
+        openai_key = (api_keys or {}).get('openai') or os.getenv('OPENAI_API_KEY')
         
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            max_tokens=200,
-            temperature=0.7
-        )
-        
-        return response.choices[0].message.content.strip()
+        if openai_key:
+            client = OpenAI(api_key=openai_key)
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                max_tokens=200,
+                temperature=0.7
+            )
+            
+            return response.choices[0].message.content.strip()
+        else:
+            # APIキーがない場合はフォールバック
+            raise Exception("No OpenAI API key available")
     except Exception as e:
         # フォールバックプロンプト
         fallback_prompts = {

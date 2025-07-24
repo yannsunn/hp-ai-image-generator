@@ -659,80 +659,86 @@ const ImageGenerationForm = () => {
                 </button>
               </div>
 
-              <div className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <p className="text-sm text-blue-800">
-                    各APIキーは安全にブラウザのローカルストレージに保存されます。
-                    サーバーには送信されません。
-                  </p>
-                </div>
+              <form onSubmit={(e) => { e.preventDefault(); saveApiKeys(); }}>
+                <div className="space-y-6">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      各APIキーは安全にブラウザのローカルストレージに保存されます。
+                      サーバーには送信されません。
+                    </p>
+                  </div>
 
-                {/* OpenAI API Key */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    OpenAI API Key (DALL-E 3)
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKeys.openai}
-                    onChange={(e) => setApiKeys({...apiKeys, openai: e.target.value})}
-                    placeholder="sk-..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    取得先: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.openai.com/api-keys</a>
-                  </p>
-                </div>
+                  {/* OpenAI API Key */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      OpenAI API Key (DALL-E 3)
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKeys.openai}
+                      onChange={(e) => setApiKeys({...apiKeys, openai: e.target.value})}
+                      placeholder="sk-..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      autoComplete="new-password"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      取得先: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.openai.com/api-keys</a>
+                    </p>
+                  </div>
 
-                {/* Stability AI API Key */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Stability AI API Key (Stable Diffusion)
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKeys.stability}
-                    onChange={(e) => setApiKeys({...apiKeys, stability: e.target.value})}
-                    placeholder="sk-..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    取得先: <a href="https://platform.stability.ai/account/keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.stability.ai/account/keys</a>
-                  </p>
-                </div>
+                  {/* Stability AI API Key */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stability AI API Key (Stable Diffusion)
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKeys.stability}
+                      onChange={(e) => setApiKeys({...apiKeys, stability: e.target.value})}
+                      placeholder="sk-..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      autoComplete="new-password"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      取得先: <a href="https://platform.stability.ai/account/keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.stability.ai/account/keys</a>
+                    </p>
+                  </div>
 
-                {/* Replicate API Token */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Replicate API Token
-                  </label>
-                  <input
-                    type="password"
-                    value={apiKeys.replicate}
-                    onChange={(e) => setApiKeys({...apiKeys, replicate: e.target.value})}
-                    placeholder="r8_..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    取得先: <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://replicate.com/account/api-tokens</a>
-                  </p>
-                </div>
+                  {/* Replicate API Token */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Replicate API Token
+                    </label>
+                    <input
+                      type="password"
+                      value={apiKeys.replicate}
+                      onChange={(e) => setApiKeys({...apiKeys, replicate: e.target.value})}
+                      placeholder="r8_..."
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      autoComplete="new-password"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      取得先: <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://replicate.com/account/api-tokens</a>
+                    </p>
+                  </div>
 
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={saveApiKeys}
-                    className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                  >
-                    保存
-                  </button>
-                  <button
-                    onClick={() => setShowApiKeyModal(false)}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                  >
-                    キャンセル
-                  </button>
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                    >
+                      保存
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKeyModal(false)}
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                    >
+                      キャンセル
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </form>
             </div>
           </div>
         </div>
