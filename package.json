@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
-    "install": "npm install"
+    "build": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
