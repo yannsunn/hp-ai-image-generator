@@ -1,3 +1,10 @@
+#!/bin/bash
+
+# Frontend build
+cd frontend
+
+# Create a temporary index.html for build
+cat > index.build.html << 'EOF'
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -9,8 +16,21 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="module">
-    import('/src/main.jsx')
-  </script>
+  <script type="module" src="./src/main.jsx"></script>
 </body>
 </html>
+EOF
+
+# Use the build index
+mv index.html index.dev.html
+mv index.build.html index.html
+
+# Run build
+npm run build
+
+# Restore dev index
+mv index.html index.build.html
+mv index.dev.html index.html
+
+# Clean up
+rm -f index.build.html
