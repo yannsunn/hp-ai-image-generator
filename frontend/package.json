@@ -2,6 +2,7 @@
   "name": "ai-image-generation-frontend",
   "version": "1.0.0",
   "description": "AI画像生成システムのフロントエンド",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
