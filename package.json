@@ -3,12 +3,19 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "install:all": "npm install && cd frontend && npm install"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
     "cheerio": "^1.0.0-rc.12",
     "openai": "^4.20.1",
     "replicate": "^0.22.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.0.8"
   }
 }
