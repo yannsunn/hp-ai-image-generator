@@ -1,21 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import { resolve } from 'path'
 
 export default defineConfig({
-  plugins: [react()],
-  root: process.cwd(),
+  plugins: [
+    react(),
+    {
+      name: 'html-transform',
+      transformIndexHtml(html) {
+        return html.replace(
+          '<script type="module" src="./src/main.jsx"></script>',
+          '<script type="module" src="/src/main.jsx"></script>'
+        )
+      }
+    }
+  ],
   build: {
     outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: resolve(process.cwd(), 'index.html')
-    }
-  },
-  resolve: {
-    alias: {
-      '@': resolve(process.cwd(), './src')
-    }
+    emptyOutDir: true
   },
   server: {
     port: 3000,
