@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd frontend && rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && npm run build",
+  "buildCommand": "cd frontend && npm cache clean --force && rm -rf node_modules package-lock.json && npm install && npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "echo 'Install will be handled by buildCommand'",
+  "installCommand": "echo 'Skip root install'",
   "framework": null,
   "functions": {
     "api/**/*.js": {
@@ -36,5 +36,8 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "FORCE_COLOR": "0"
+  }
 }
