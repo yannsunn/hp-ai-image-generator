@@ -92,6 +92,7 @@ export async function analyzeUrl(url) {
     
     let response;
     try {
+      console.log('Fetching URL:', url);
       response = await fetch(url, {
         signal: controller.signal,
         headers: {
@@ -284,6 +285,8 @@ export async function analyzeUrl(url) {
 }
 
 export default async function handler(req, res) {
+  console.log('analyze-url handler called:', { method: req.method, body: req.body });
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -309,14 +312,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'URLが指定されていません' });
     }
 
+    console.log('Analyzing URL:', url);
     const result = await analyzeUrl(url);
+    console.log('Analysis result:', result);
+    
     return res.status(result.success ? 200 : 400).json(result);
 
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({
+    console.error('API Error details:', error.stack || error);
+    
+    // 確実にJSONレスポンスを返す
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).send(JSON.stringify({
       error: 'サーバーエラー',
-      message: error.message
-    });
+      message: error.message || 'Unknown error occurred',
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    }));
   }
 }
