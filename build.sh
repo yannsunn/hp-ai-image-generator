@@ -1,7 +1,13 @@
 #!/bin/bash
 
+# Install dependencies
+npm install
+
 # Frontend build
 cd frontend
+
+# Install frontend dependencies
+npm install
 
 # Create a temporary index.html for build
 cat > index.build.html << 'EOF'
