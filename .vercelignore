@@ -17,3 +17,11 @@ htmlcov/
 requirements.txt
 src/
 public/
+package.json.bak
+vercel-build.sh
+api/
+backend/
+docs/
+test/
+*.log
+.github/
