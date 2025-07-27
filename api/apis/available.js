@@ -14,12 +14,11 @@ export default function handler(req, res) {
   }
 
   if (req.method === 'POST') {
-    const { api_keys = {} } = req.body || {};
     const available = [];
     
-    if (api_keys.openai) available.push('openai');
-    if (api_keys.stability) available.push('stability');
-    if (api_keys.replicate) available.push('replicate');
+    if (process.env.OPENAI_API_KEY) available.push('openai');
+    if (process.env.STABILITY_API_KEY) available.push('stability');
+    if (process.env.REPLICATE_API_TOKEN) available.push('replicate');
     
     return res.status(200).json({
       available,

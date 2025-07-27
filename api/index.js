@@ -35,12 +35,11 @@ export default async function handler(req, res) {
 
     // Available APIs endpoint
     if (path === 'apis/available' && method === 'POST') {
-      const { api_keys = {} } = req.body || {};
       const available = [];
       
-      if (api_keys.openai) available.push('openai');
-      if (api_keys.stability) available.push('stability');
-      if (api_keys.replicate) available.push('replicate');
+      if (process.env.OPENAI_API_KEY) available.push('openai');
+      if (process.env.STABILITY_API_KEY) available.push('stability');
+      if (process.env.REPLICATE_API_TOKEN) available.push('replicate');
       
       return res.status(200).json({
         available,
@@ -50,7 +49,7 @@ export default async function handler(req, res) {
 
     // Analyze endpoint
     if (path === 'analyze' && method === 'POST') {
-      const { prompt, context = {}, api_keys = {} } = req.body || {};
+      const { prompt, context = {} } = req.body || {};
       
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required for analysis' });
@@ -71,19 +70,19 @@ export default async function handler(req, res) {
           }
         };
 
-        // APIキーに基づいて推奨APIを設定
-        if (api_keys.openai) analysisData.recommended_apis.push('openai');
-        if (api_keys.stability) analysisData.recommended_apis.push('stability');
-        if (api_keys.replicate) analysisData.recommended_apis.push('replicate');
+        // 環境変数に基づいて推奨APIを設定
+        if (process.env.OPENAI_API_KEY) analysisData.recommended_apis.push('openai');
+        if (process.env.STABILITY_API_KEY) analysisData.recommended_apis.push('stability');
+        if (process.env.REPLICATE_API_TOKEN) analysisData.recommended_apis.push('replicate');
         
         if (analysisData.recommended_apis.length === 0) {
           analysisData.recommended_apis.push('demo');
         }
 
         // OpenAIでプロンプト解析を実行（APIキーがある場合）
-        if (api_keys.openai && prompt.length > 10) {
+        if (process.env.OPENAI_API_KEY && prompt.length > 10) {
           try {
-            const openai = new OpenAI({ apiKey: api_keys.openai });
+            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
             const completion = await openai.chat.completions.create({
               model: 'gpt-4o-mini',
               messages: [
@@ -131,7 +130,7 @@ export default async function handler(req, res) {
 
     // Generate endpoint (simplified)
     if (path === 'generate' && method === 'POST') {
-      const { prompt, api_keys = {} } = req.body || {};
+      const { prompt } = req.body || {};
       
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
@@ -152,7 +151,7 @@ export default async function handler(req, res) {
 
     // Batch generate endpoint
     if (path === 'generate/batch' && method === 'POST') {
-      const { prompt, count = 1, api_keys = {}, selected_api = 'auto' } = req.body || {};
+      const { prompt, count = 1, selected_api = 'auto' } = req.body || {};
       
       if (!prompt) {
         return res.status(400).json({ error: 'Prompt is required' });
@@ -165,9 +164,9 @@ export default async function handler(req, res) {
       // API選択ロジック
       let apiToUse = selected_api;
       if (apiToUse === 'auto') {
-        if (api_keys.openai) apiToUse = 'openai';
-        else if (api_keys.stability) apiToUse = 'stability';
-        else if (api_keys.replicate) apiToUse = 'replicate';
+        if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
+        else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
+        else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
         else apiToUse = 'demo';
       }
 
@@ -182,24 +181,24 @@ export default async function handler(req, res) {
           let result;
           switch (apiToUse) {
             case 'openai':
-              if (!api_keys.openai) {
+              if (!process.env.OPENAI_API_KEY) {
                 throw new Error('OpenAI API key is required');
               }
-              result = await generateWithOpenAI(prompt, api_keys.openai);
+              result = await generateWithOpenAI(prompt, process.env.OPENAI_API_KEY);
               break;
 
             case 'stability':
-              if (!api_keys.stability) {
+              if (!process.env.STABILITY_API_KEY) {
                 throw new Error('Stability AI API key is required');
               }
-              result = await generateWithStability(prompt, api_keys.stability);
+              result = await generateWithStability(prompt, process.env.STABILITY_API_KEY);
               break;
 
             case 'replicate':
-              if (!api_keys.replicate) {
+              if (!process.env.REPLICATE_API_TOKEN) {
                 throw new Error('Replicate API token is required');
               }
-              result = await generateWithReplicate(prompt, api_keys.replicate);
+              result = await generateWithReplicate(prompt, process.env.REPLICATE_API_TOKEN);
               break;
 
             default:

@@ -22,12 +22,6 @@ const ImageGenerationForm = () => {
   const [totalCost, setTotalCost] = useState(0);
   const [urlContent, setUrlContent] = useState(null);
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
-  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
-  const [apiKeys, setApiKeys] = useState({
-    openai: localStorage.getItem('openai_api_key') || '',
-    stability: localStorage.getItem('stability_api_key') || '',
-    replicate: localStorage.getItem('replicate_api_token') || ''
-  });
 
   // APIの可用性をチェック
   useEffect(() => {
@@ -44,7 +38,7 @@ const ImageGenerationForm = () => {
       const response = await fetch('/api/apis/available', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_keys: apiKeys })
+        body: JSON.stringify({})
       });
       const data = await response.json();
       setAvailableApis(data.available || []);
@@ -53,14 +47,6 @@ const ImageGenerationForm = () => {
     }
   };
 
-  // APIキーを保存
-  const saveApiKeys = () => {
-    localStorage.setItem('openai_api_key', apiKeys.openai);
-    localStorage.setItem('stability_api_key', apiKeys.stability);
-    localStorage.setItem('replicate_api_token', apiKeys.replicate);
-    setShowApiKeyModal(false);
-    fetchAvailableApis(); // APIキー保存後に再チェック
-  };
 
   // プロンプト解析（デバウンス付き）
   useEffect(() => {
@@ -79,8 +65,7 @@ const ImageGenerationForm = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           prompt, 
-          context,
-          api_keys: apiKeys 
+          context
         })
       });
       const data = await response.json();
@@ -107,8 +92,7 @@ const ImageGenerationForm = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          url,
-          api_keys: apiKeys 
+          url
         })
       });
 
@@ -182,8 +166,7 @@ const ImageGenerationForm = () => {
               text_language: 'japanese'
             }
           },
-          options: {},
-          api_keys: apiKeys
+          options: {}
         })
       });
 
@@ -660,121 +643,6 @@ const ImageGenerationForm = () => {
         />
       )}
 
-      {/* APIキー入力モーダル */}
-      {showApiKeyModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold flex items-center gap-2">
-                  <Key className="w-6 h-6" />
-                  APIキー設定
-                </h2>
-                <button
-                  onClick={() => setShowApiKeyModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={(e) => { e.preventDefault(); saveApiKeys(); }}>
-                <div className="space-y-6">
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-800">
-                      各APIキーは安全にブラウザのローカルストレージに保存されます。
-                      サーバーには送信されません。
-                    </p>
-                  </div>
-
-                  {/* Hidden username field for accessibility */}
-                  <input
-                    type="text"
-                    name="username"
-                    autoComplete="username"
-                    style={{ display: 'none' }}
-                    value=""
-                    onChange={() => {}}
-                  />
-
-                  {/* OpenAI API Key */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      OpenAI API Key (DALL-E 3)
-                    </label>
-                    <input
-                      type="password"
-                      name="openai-key"
-                      value={apiKeys.openai}
-                      onChange={(e) => setApiKeys({...apiKeys, openai: e.target.value})}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      autoComplete="new-password"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      取得先: <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.openai.com/api-keys</a>
-                    </p>
-                  </div>
-
-                  {/* Stability AI API Key */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stability AI API Key (Stable Diffusion)
-                    </label>
-                    <input
-                      type="password"
-                      name="stability-key"
-                      value={apiKeys.stability}
-                      onChange={(e) => setApiKeys({...apiKeys, stability: e.target.value})}
-                      placeholder="sk-..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      autoComplete="new-password"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      取得先: <a href="https://platform.stability.ai/account/keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://platform.stability.ai/account/keys</a>
-                    </p>
-                  </div>
-
-                  {/* Replicate API Token */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Replicate API Token
-                    </label>
-                    <input
-                      type="password"
-                      name="replicate-token"
-                      value={apiKeys.replicate}
-                      onChange={(e) => setApiKeys({...apiKeys, replicate: e.target.value})}
-                      placeholder="r8_..."
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      autoComplete="new-password"
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      取得先: <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">https://replicate.com/account/api-tokens</a>
-                    </p>
-                  </div>
-
-                  <div className="flex gap-3 pt-4">
-                    <button
-                      type="submit"
-                      className="flex-1 px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
-                    >
-                      保存
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowApiKeyModal(false)}
-                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-                    >
-                      キャンセル
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
