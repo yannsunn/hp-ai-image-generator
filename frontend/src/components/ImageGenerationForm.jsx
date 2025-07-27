@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, Key, X } from 'lucide-react';
+import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X } from 'lucide-react';
 import ImageEditingPanel from './ImageEditingPanel';
 
 const ImageGenerationForm = () => {
@@ -25,11 +25,6 @@ const ImageGenerationForm = () => {
 
   // APIの可用性をチェック
   useEffect(() => {
-    // APIキーが設定されているかチェック
-    const hasApiKeys = apiKeys.openai || apiKeys.stability || apiKeys.replicate;
-    if (!hasApiKeys) {
-      setShowApiKeyModal(true);
-    }
     fetchAvailableApis();
   }, []);
 
@@ -286,29 +281,6 @@ const ImageGenerationForm = () => {
             <p className="text-gray-600">ホームページ制作に最適な画像を生成・編集</p>
           </div>
 
-          {/* APIキー設定案内 */}
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <h3 className="font-semibold text-yellow-800 mb-2">🔑 APIキーの設定</h3>
-                <p className="text-sm text-yellow-700 mb-2">
-                  画像生成には以下のAPIキーが必要です：
-                </p>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>• <strong>OpenAI</strong> - 高品質な画像生成</li>
-                  <li>• <strong>Stability AI</strong> - アーティスティックな画像</li>
-                  <li>• <strong>Replicate</strong> - リアルな人物画像</li>
-                </ul>
-              </div>
-              <button
-                onClick={() => setShowApiKeyModal(true)}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium hover:bg-yellow-700 transition-colors flex items-center gap-2"
-              >
-                <Key className="w-4 h-4" />
-                APIキーを設定
-              </button>
-            </div>
-          </div>
 
           {/* メインフォーム */}
           <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
