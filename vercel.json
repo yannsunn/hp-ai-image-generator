@@ -1,5 +1,5 @@
 {
-  "buildCommand": "cd frontend && npm cache clean --force && rm -rf node_modules package-lock.json && npm install && npm run build",
+  "buildCommand": "cd frontend && echo 'Current directory:' && pwd && echo 'Files in frontend:' && ls -la && echo 'Files in src:' && ls -la src/ && npm cache clean --force && rm -rf node_modules package-lock.json && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo 'Skip root install'",
   "framework": null,
