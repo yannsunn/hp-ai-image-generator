@@ -15,8 +15,8 @@ htmlcov/
 .DS_Store
 *.md
 requirements.txt
-src/
-public/
+/src/
+/public/
 package.json.bak
 vercel-build.sh
 backend/
