@@ -192,9 +192,22 @@ module.exports = async function handler(req, res) {
   
   } catch (error) {
     console.error('Batch generate API error:', error);
+    console.error('Error stack:', error.stack);
     
     // 確実にJSONレスポンスを返す
     res.setHeader('Content-Type', 'application/json');
+    
+    // タイムアウトエラーの場合
+    if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
+      return res.status(504).json({
+        success: false,
+        error: 'タイムアウトエラー',
+        details: '処理時間が長すぎます。生成枚数を減らすか、単一生成をお試しください。',
+        suggestion: '生成枚数を1-2枚に減らしてください',
+        apiUsed: apiToUse || 'unknown'
+      });
+    }
+    
     return res.status(500).json({
       success: false,
       error: 'サーバーエラー',
@@ -248,7 +261,9 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
         }
         // 日本向けのプロンプトを強化
         const japanesePrompt = enhancePromptForJapan(prompt, context);
+        console.log(`Starting Replicate generation for image ${index + 1}`);
         result = await generateWithReplicate(japanesePrompt, process.env.REPLICATE_API_TOKEN, context);
+        console.log(`Completed Replicate generation for image ${index + 1}`);
         break;
 
         default:
@@ -375,13 +390,14 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
   });
   
   try {
-    console.log('Running Replicate model with prompt:', prompt);
+    console.log('Running Replicate model with prompt:', prompt.substring(0, 100) + '...');
     
     // Replicate用のプロンプトを調整
-    const replicatePrompt = prompt.replace('negative prompt:', '');
+    const replicatePrompt = prompt.replace('negative prompt:', '').substring(0, 500); // プロンプトを短縮
     const negativeMatch = prompt.match(/negative prompt: ([^,]+)/i);
     const negativePrompt = negativeMatch ? negativeMatch[1] : 'low quality, blurry, distorted';
     
+    // タイムアウトを短縮して高速化
     const output = await replicate.run(
       'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
       {
@@ -391,9 +407,9 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
           width: 1024,
           height: 1024,
           num_outputs: 1,
-          scheduler: 'DPMSolverMultistep',
-          num_inference_steps: 50,
-          guidance_scale: 9,
+          scheduler: 'K_EULER_ANCESTRAL', // 高速スケジューラー
+          num_inference_steps: 25, // ステップ数を減らして高速化
+          guidance_scale: 7.5, // ガイダンスを下げて高速化
           seed: Math.floor(Math.random() * 1000000)
         }
       }

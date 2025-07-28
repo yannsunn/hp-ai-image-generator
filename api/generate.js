@@ -261,13 +261,14 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
   });
   
   try {
-    console.log('Running Replicate model with prompt:', prompt);
+    console.log('Running Replicate model with prompt:', prompt.substring(0, 100) + '...');
     
     // Replicate用のプロンプトを調整
-    const replicatePrompt = prompt.replace('negative prompt:', '');
+    const replicatePrompt = prompt.replace('negative prompt:', '').substring(0, 500); // プロンプトを短縮
     const negativeMatch = prompt.match(/negative prompt: ([^,]+)/i);
     const negativePrompt = negativeMatch ? negativeMatch[1] : 'low quality, blurry, distorted';
     
+    // タイムアウトを短縮して高速化
     const output = await replicate.run(
       'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
       {
@@ -277,9 +278,9 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
           width: 1024,
           height: 1024,
           num_outputs: 1,
-          scheduler: 'DPMSolverMultistep',
-          num_inference_steps: 50,
-          guidance_scale: 9,
+          scheduler: 'K_EULER_ANCESTRAL', // 高速スケジューラー
+          num_inference_steps: 25, // ステップ数を減らして高速化
+          guidance_scale: 7.5, // ガイダンスを下げて高速化
           seed: Math.floor(Math.random() * 1000000)
         }
       }
