@@ -3,6 +3,8 @@ import Replicate from 'replicate';
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
+  console.log('Batch generate handler called:', { method: req.method, url: req.url });
+  
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,19 +19,28 @@ export default async function handler(req, res) {
     return;
   }
 
+  // 全体のエラーハンドリング
+  try {
+
   if (req.method === 'POST') {
-    const { prompt, count = 1, api_keys = {}, context = {}, api: selectedApi = 'auto' } = req.body || {};
+    console.log('Batch generate request:', req.body);
+    
+    const { prompt, count = 1, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // API選択ロジック
+    if (count > 8) {
+      return res.status(400).json({ error: '生成枚数は8枚までです' });
+    }
+
+    // API選択ロジック（環境変数ベース）
     let apiToUse = selectedApi;
     if (apiToUse === 'auto') {
-      if (api_keys.openai) apiToUse = 'openai';
-      else if (api_keys.stability) apiToUse = 'stability';
-      else if (api_keys.replicate) apiToUse = 'replicate';
+      if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
+      else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
+      else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
       else apiToUse = 'demo';
     }
 
@@ -40,7 +51,7 @@ export default async function handler(req, res) {
     // 各画像を並列で生成
     const generatePromises = [];
     for (let i = 0; i < count; i++) {
-      generatePromises.push(generateSingleImage(prompt, apiToUse, api_keys, context, i));
+      generatePromises.push(generateSingleImage(prompt, apiToUse, context, i));
     }
     
     const results = await Promise.allSettled(generatePromises);
@@ -76,6 +87,11 @@ export default async function handler(req, res) {
       }
     });
 
+    console.log(`Batch generation completed: ${images.length} images, ${errors.length} errors, $${totalCost.toFixed(4)} cost`);
+    
+    // Content-Type を明示的に設定
+    res.setHeader('Content-Type', 'application/json');
+    
     return res.status(200).json({
       success: true,
       images,
@@ -84,40 +100,57 @@ export default async function handler(req, res) {
       summary: {
         requested: count,
         generated: images.filter(img => !img.metadata.error).length,
-        failed: errors.length
+        failed: errors.length,
+        api_used: apiToUse
       }
     });
   }
 
+  res.setHeader('Content-Type', 'application/json');
   return res.status(405).json({ error: 'Method not allowed' });
+  
+  } catch (error) {
+    console.error('Batch generate API error:', error);
+    
+    // 確実にJSONレスポンスを返す
+    res.setHeader('Content-Type', 'application/json');
+    return res.status(500).json({
+      success: false,
+      error: 'サーバーエラー',
+      details: 'バッチ画像生成中にエラーが発生しました。',
+      message: error.message || 'Unknown error occurred'
+    });
+  }
 }
 
 // 単一画像を生成
-async function generateSingleImage(prompt, apiToUse, apiKeys, context, index) {
+async function generateSingleImage(prompt, apiToUse, context, index) {
   const startTime = Date.now();
   
   try {
     let result;
+    console.log(`Generating image ${index + 1} with ${apiToUse} API`);
+    
     switch (apiToUse) {
       case 'openai':
-        if (!apiKeys.openai) {
-          throw new Error('OpenAI API key is required');
+        if (!process.env.OPENAI_API_KEY) {
+          throw new Error('OpenAI API key is not configured');
         }
-        result = await generateWithOpenAI(prompt, apiKeys.openai, context);
+        result = await generateWithOpenAI(prompt, process.env.OPENAI_API_KEY, context);
         break;
 
       case 'stability':
-        if (!apiKeys.stability) {
-          throw new Error('Stability AI API key is required');
+        if (!process.env.STABILITY_API_KEY) {
+          throw new Error('Stability AI API key is not configured');
         }
-        result = await generateWithStability(prompt, apiKeys.stability, context);
+        result = await generateWithStability(prompt, process.env.STABILITY_API_KEY, context);
         break;
 
       case 'replicate':
-        if (!apiKeys.replicate) {
-          throw new Error('Replicate API token is required');
+        if (!process.env.REPLICATE_API_TOKEN) {
+          throw new Error('Replicate API token is not configured');
         }
-        result = await generateWithReplicate(prompt, apiKeys.replicate, context);
+        result = await generateWithReplicate(prompt, process.env.REPLICATE_API_TOKEN, context);
         break;
 
       default:
