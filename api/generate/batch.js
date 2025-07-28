@@ -43,6 +43,9 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // apiToUseをtryの外で定義
+  let apiToUse = 'unknown';
+
   // 全体のエラーハンドリング
   try {
 
@@ -62,7 +65,7 @@ module.exports = async function handler(req, res) {
     }
 
     // API選択ロジック（環境変数ベース）
-    let apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
+    apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
     console.log('API selection:', { selectedApi, apiToUse });
     
     if (apiToUse === 'auto') {
