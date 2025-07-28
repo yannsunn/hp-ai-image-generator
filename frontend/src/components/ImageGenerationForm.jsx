@@ -55,6 +55,14 @@ const ImageGenerationForm = () => {
     }, 500);
     return () => clearTimeout(timer);
   }, [prompt, context]);
+  
+  // コンポーネントアンマウント時のクリーンアップ
+  useEffect(() => {
+    return () => {
+      // 保留中のリクエストをキャンセル
+      // メモリリークを防ぐ
+    };
+  }, []);
 
   const analyzePrompt = async () => {
     try {

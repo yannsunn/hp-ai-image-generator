@@ -128,29 +128,27 @@ export default async function handler(req, res) {
       }
     }
 
-    // Generate endpoint (simplified)
+    // Generate endpoint - redirect to dedicated handler
     if (path === 'generate' && method === 'POST') {
-      const { prompt } = req.body || {};
-      
-      if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required' });
-      }
-
-      // For demo purposes, return a placeholder response
-      return res.status(200).json({
-        success: true,
-        message: 'Image generation requires actual API implementation',
-        metadata: {
-          original_prompt: prompt,
-          enhanced_prompt: prompt + ' - Professional Japanese style',
-          api_used: 'demo',
-          cost: 0
-        }
+      // この古い実装は使用しない - 専用のgenerate.jsにリダイレクト
+      return res.status(301).json({
+        success: false,
+        redirect: '/api/generate',
+        message: 'このエンドポイントは /api/generate に移動しました'
       });
     }
 
-    // Batch generate endpoint
+    // Batch generate endpoint - redirect to dedicated handler
     if (path === 'generate/batch' && method === 'POST') {
+      return res.status(301).json({
+        success: false,
+        redirect: '/api/generate/batch',
+        message: 'このエンドポイントは /api/generate/batch に移動しました'
+      });
+    }
+    
+    // OLD BATCH CODE - REMOVE THIS SECTION
+    if (false && path === 'generate/batch' && method === 'POST') {
       const { prompt, count = 1, selected_api = 'auto' } = req.body || {};
       
       if (!prompt) {
