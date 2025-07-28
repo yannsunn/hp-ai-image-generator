@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History, Zap, Target, TrendingUp, Award, Cpu, Gauge } from 'lucide-react';
 import ImageEditingPanel from './ImageEditingPanel';
 
 const ImageGenerationForm = () => {
@@ -28,6 +28,10 @@ const ImageGenerationForm = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [imageHistory, setImageHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [ultraMode, setUltraMode] = useState(false);
+  const [qualityPrediction, setQualityPrediction] = useState(null);
+  const [performanceMetrics, setPerformanceMetrics] = useState(null);
+  const [realTimeOptimization, setRealTimeOptimization] = useState(true);
 
   // APIの可用性をチェック
   useEffect(() => {
@@ -178,6 +182,60 @@ const ImageGenerationForm = () => {
     }
   };
 
+  // ULTRA品質予測システム
+  const predictQuality = useCallback((currentPrompt, currentContext, currentApi) => {
+    if (!realTimeOptimization) return;
+    
+    // 品質予測アルゴリズム
+    let qualityScore = 0.5;
+    
+    // プロンプト長さ評価
+    if (currentPrompt.length >= 50 && currentPrompt.length <= 300) qualityScore += 0.2;
+    
+    // 業界・コンテンツタイプ指定評価
+    if (currentContext.industry) qualityScore += 0.15;
+    if (currentContext.contentType) qualityScore += 0.15;
+    
+    // API適合性評価
+    const apiScores = {
+      'openai': { 'hero': 0.9, 'team': 0.9, 'about': 0.8 },
+      'replicate': { 'service': 0.9, 'product': 0.9 },
+      'stability': { 'testimonial': 0.9 }
+    };
+    
+    if (apiScores[currentApi]?.[currentContext.contentType]) {
+      qualityScore += 0.1;
+    }
+    
+    const prediction = {
+      score: Math.min(1.0, qualityScore),
+      level: qualityScore >= 0.8 ? 'EXCELLENT' : qualityScore >= 0.6 ? 'GOOD' : 'ACCEPTABLE',
+      recommendations: []
+    };
+    
+    if (qualityScore < 0.6) {
+      prediction.recommendations.push('プロンプトをより詳細にしてください');
+    }
+    if (!currentContext.industry) {
+      prediction.recommendations.push('業界を選択すると品質が向上します');
+    }
+    if (!currentContext.contentType) {
+      prediction.recommendations.push('コンテンツタイプを選択してください');
+    }
+    
+    setQualityPrediction(prediction);
+  }, [realTimeOptimization]);
+  
+  // リアルタイム品質予測
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (prompt.trim() && realTimeOptimization) {
+        predictQuality(prompt, context, selectedApi);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [prompt, context, selectedApi, predictQuality]);
+  
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError('メインの指示文を入力してください');
@@ -197,8 +255,18 @@ const ImageGenerationForm = () => {
     const combinedPrompt = allInstructions.join('. ');
 
     try {
-      // 複数枚生成の場合はバッチAPIを使用
-      const endpoint = numberOfImages > 1 ? '/api/generate/batch' : '/api/generate';
+      // ULTRAモードの判定
+      const useUltraMode = ultraMode || qualityPrediction?.level === 'EXCELLENT';
+      
+      // エンドポイント選択
+      let endpoint;
+      if (useUltraMode) {
+        endpoint = '/api/ultra-generate';
+      } else {
+        endpoint = numberOfImages > 1 ? '/api/generate/batch' : '/api/generate';
+      }
+      
+      console.log(`🚀 Using ${useUltraMode ? 'ULTRA' : 'STANDARD'} generation mode`);
       
       const requestPayload = {
         prompt: combinedPrompt,
@@ -250,38 +318,62 @@ const ImageGenerationForm = () => {
       }
 
       if (data.success) {
-        // 単一画像の場合
-        if (numberOfImages === 1) {
-          const newImage = {
-            id: Date.now(),
-            src: data.image,
-            prompt: data.metadata.original_prompt,
-            enhancedPrompt: data.metadata.enhanced_prompt,
-            api: data.metadata.api_used,
-            cost: data.metadata.cost,
-            analysis: data.metadata.analysis
-          };
-          setGeneratedImages([...generatedImages, newImage]);
-          setTotalCost(totalCost + data.metadata.cost);
-          
-          // 画像を自動保存
-          saveImageToHistory(newImage);
-        } else {
-          // 複数画像の場合
+        
+        // パフォーマンスメトリクスの更新
+        if (data.performance_stats) {
+          setPerformanceMetrics(data.performance_stats);
+        }
+        
+        // ULTRAモードの結果処理
+        if (data.ultra_optimized) {
           const newImages = data.images.map((img, index) => ({
             id: Date.now() + index,
             src: img.image,
             prompt: img.metadata.original_prompt,
-            enhancedPrompt: img.metadata.enhanced_prompt,
+            enhancedPrompt: img.metadata.enhanced_prompt || img.metadata.original_prompt,
             api: img.metadata.api_used,
             cost: img.metadata.cost,
-            analysis: img.metadata.analysis
+            analysis: img.metadata.analysis,
+            ultraOptimized: true,
+            generationTime: img.metadata.generation_time
           }));
           setGeneratedImages([...generatedImages, ...newImages]);
-          setTotalCost(totalCost + data.total_cost);
+          setTotalCost(totalCost + newImages.reduce((acc, img) => acc + img.cost, 0));
           
-          // 複数画像を自動保存
           newImages.forEach(img => saveImageToHistory(img));
+        } else {
+          // 既存の処理ロジック
+          // 単一画像の場合
+          if (numberOfImages === 1) {
+            const newImage = {
+              id: Date.now(),
+              src: data.image,
+              prompt: data.metadata.original_prompt,
+              enhancedPrompt: data.metadata.enhanced_prompt,
+              api: data.metadata.api_used,
+              cost: data.metadata.cost,
+              analysis: data.metadata.analysis
+            };
+            setGeneratedImages([...generatedImages, newImage]);
+            setTotalCost(totalCost + data.metadata.cost);
+            
+            saveImageToHistory(newImage);
+          } else {
+            // 複数画像の場合
+            const newImages = data.images.map((img, index) => ({
+              id: Date.now() + index,
+              src: img.image,
+              prompt: img.metadata.original_prompt,
+              enhancedPrompt: img.metadata.enhanced_prompt,
+              api: img.metadata.api_used,
+              cost: img.metadata.cost,
+              analysis: img.metadata.analysis
+            }));
+            setGeneratedImages([...generatedImages, ...newImages]);
+            setTotalCost(totalCost + data.total_cost);
+            
+            newImages.forEach(img => saveImageToHistory(img));
+          }
         }
         
         // プロンプトをクリアしない（追加生成を可能にする）
@@ -493,23 +585,119 @@ const ImageGenerationForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          {/* ヘッダー */}
+          {/* ULTRAヘッダー */}
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4 flex items-center justify-center gap-3">
-              <Sparkles className="w-10 h-10 text-purple-600" />
-              AI画像生成システム
-            </h1>
-            <p className="text-gray-600">ホームページ制作に最適な画像を生成・編集</p>
-            <button
-              onClick={() => {
-                setShowHistory(true);
-                loadHistory();
-              }}
-              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 mx-auto"
-            >
-              <History className="w-4 h-4" />
-              生成履歴
-            </button>
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <div className={`p-3 rounded-full transition-all duration-300 ${
+                ultraMode ? 'bg-gradient-to-r from-yellow-400 to-orange-500 shadow-lg' : 'bg-purple-100'
+              }`}>
+                {ultraMode ? (
+                  <Zap className="w-10 h-10 text-white" />
+                ) : (
+                  <Sparkles className="w-10 h-10 text-purple-600" />
+                )}
+              </div>
+              <div className="text-left">
+                <h1 className="text-4xl font-bold text-gray-800 flex items-center gap-3">
+                  {ultraMode ? 'ULTRA AI' : 'AI'}画像生成システム
+                  {ultraMode && <Award className="w-8 h-8 text-yellow-500" />}
+                </h1>
+                <p className="text-gray-600">
+                  {ultraMode ? '最先端のULTRA最適化エンジンで最高品質の画像を生成' : 'ホームページ制作に最適な画像を生成・編集'}
+                </p>
+              </div>
+            </div>
+            
+            {/* ULTRAモードコントロール */}
+            <div className="flex items-center justify-center gap-4 mb-6">
+              <button
+                onClick={() => setUltraMode(!ultraMode)}
+                className={`px-6 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 ${
+                  ultraMode 
+                    ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white shadow-lg transform scale-105' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                <Zap className="w-5 h-5" />
+                ULTRAモード
+              </button>
+              
+              <button
+                onClick={() => setRealTimeOptimization(!realTimeOptimization)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  realTimeOptimization 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-gray-200 text-gray-700'
+                }`}
+              >
+                <TrendingUp className="w-4 h-4" />
+                リアルタイム最適化
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowHistory(true);
+                  loadHistory();
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+              >
+                <History className="w-4 h-4" />
+                生成履歴
+              </button>
+            </div>
+            
+            {/* リアルタイムパフォーマンスメトリクス */}
+            {performanceMetrics && (
+              <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-center gap-6 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Gauge className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium">平均生成時間:</span>
+                    <span className="text-blue-600">{Math.round(performanceMetrics.average_execution_time / 1000)}s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Target className="w-4 h-4 text-green-600" />
+                    <span className="font-medium">パフォーマンス:</span>
+                    <span className="text-green-600">{performanceMetrics.average_performance_score.toFixed(2)} images/s</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Cpu className="w-4 h-4 text-purple-600" />
+                    <span className="font-medium">最適化レベル:</span>
+                    <span className="text-purple-600">{performanceMetrics.optimization_level}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* 品質予測表示 */}
+            {qualityPrediction && realTimeOptimization && (
+              <div className={`rounded-lg p-4 mb-4 ${
+                qualityPrediction.level === 'EXCELLENT' ? 'bg-green-50 border border-green-200' :
+                qualityPrediction.level === 'GOOD' ? 'bg-blue-50 border border-blue-200' :
+                'bg-yellow-50 border border-yellow-200'
+              }`}>
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    qualityPrediction.level === 'EXCELLENT' ? 'bg-green-500' :
+                    qualityPrediction.level === 'GOOD' ? 'bg-blue-500' : 'bg-yellow-500'
+                  }`}></div>
+                  <span className="font-semibold">予測品質: {qualityPrediction.level}</span>
+                  <span className="text-sm bg-white px-2 py-1 rounded">
+                    {Math.round(qualityPrediction.score * 100)}%
+                  </span>
+                </div>
+                {qualityPrediction.recommendations.length > 0 && (
+                  <div className="text-sm text-gray-600">
+                    <span className="font-medium">推奨事項:</span>
+                    <ul className="mt-1 list-disc list-inside">
+                      {qualityPrediction.recommendations.map((rec, idx) => (
+                        <li key={idx}>{rec}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
 
@@ -811,17 +999,24 @@ const ImageGenerationForm = () => {
                 <button
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
-                  className="w-full px-8 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  className={`w-full px-8 py-3 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2 ${
+                    ultraMode 
+                      ? 'bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 hover:from-yellow-500 hover:via-orange-600 hover:to-red-600 shadow-lg transform hover:scale-105' 
+                      : 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700'
+                  }`}
                 >
                   {isGenerating ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
+                      {ultraMode && '🚀 ULTRA '}
                       {numberOfImages > 1 ? `${numberOfImages}枚生成中...` : '生成中...'}
                     </>
                   ) : (
                     <>
-                      <Sparkles className="w-5 h-5" />
+                      {ultraMode ? <Zap className="w-5 h-5" /> : <Sparkles className="w-5 h-5" />}
+                      {ultraMode && 'ULTRA '}
                       {numberOfImages > 1 ? `${numberOfImages}枚生成` : '画像を生成'}
+                      {ultraMode && ' ⚡'}
                     </>
                   )}
                 </button>
