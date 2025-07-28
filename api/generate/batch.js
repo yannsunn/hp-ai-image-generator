@@ -46,7 +46,13 @@ module.exports = async function handler(req, res) {
       if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
       else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
       else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
-      else apiToUse = 'demo';
+      else {
+        return res.status(500).json({
+          success: false,
+          error: 'APIキーが設定されていません',
+          message: 'Vercelの環境変数にAPIキーを設定してください'
+        });
+      }
     }
     
     console.log('Final API to use:', apiToUse);
@@ -90,36 +96,33 @@ module.exports = async function handler(req, res) {
           details: result.reason.toString()
         });
         
-        // エラー時はデモ画像を追加
-        images.push({
-          index,
-          image: generateDemoImage(prompt, index),
-          metadata: {
-            original_prompt: prompt,
-            enhanced_prompt: prompt + ' - Professional Japanese style',
-            api_used: 'demo (error fallback)',
-            cost: 0,
-            error: result.reason.message,
-            errorDetails: result.reason.toString(),
-            errorStack: process.env.NODE_ENV === 'development' ? result.reason.stack : undefined
-          }
-        });
+        // エラー時は何も追加しない - エラーをそのまま伝える
       }
     });
 
     console.log(`Batch generation completed: ${images.length} images, ${errors.length} errors, $${totalCost.toFixed(4)} cost`);
     
+    // エラーがある場合は失敗として処理
+    if (errors.length > 0 && images.length === 0) {
+      return res.status(500).json({
+        success: false,
+        error: 'すべての画像生成に失敗しました',
+        errors: errors,
+        details: errors.map(e => e.details).join(', ')
+      });
+    }
+    
     // Content-Type を明示的に設定
     res.setHeader('Content-Type', 'application/json');
     
     return res.status(200).json({
-      success: true,
+      success: images.length > 0,
       images,
       errors,
       total_cost: totalCost,
       summary: {
         requested: count,
-        generated: images.filter(img => !img.metadata.error).length,
+        generated: images.length,
         failed: errors.length,
         api_used: apiToUse
       }
@@ -174,17 +177,8 @@ async function generateSingleImage(prompt, apiToUse, context, index) {
         break;
 
       default:
-        // デモモード
-        return {
-          image: generateDemoImage(prompt, index),
-          metadata: {
-            original_prompt: prompt,
-            enhanced_prompt: prompt + ' - Professional Japanese style',
-            api_used: 'demo',
-            cost: 0,
-            generation_time: Date.now() - startTime
-          }
-        };
+        // 無効なAPIが選択された場合
+        throw new Error(`無効なAPIが選択されました: ${apiToUse}`);
     }
     
     return {
@@ -329,53 +323,7 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
   }
 }
 
-// デモ画像生成
-function generateDemoImage(prompt, index = 0) {
-  try {
-    const colors = [
-      { bg1: '#e3f2fd', bg2: '#bbdefb', main: '#2196f3', accent: '#1976d2' },
-      { bg1: '#f3e5f5', bg2: '#e1bee7', main: '#9c27b0', accent: '#7b1fa2' },
-      { bg1: '#e8f5e9', bg2: '#c8e6c9', main: '#4caf50', accent: '#388e3c' },
-      { bg1: '#fff3e0', bg2: '#ffe0b2', main: '#ff9800', accent: '#f57c00' },
-      { bg1: '#fce4ec', bg2: '#f8bbd0', main: '#e91e63', accent: '#c2185b' },
-      { bg1: '#e0f2f1', bg2: '#b2dfdb', main: '#009688', accent: '#00796b' },
-      { bg1: '#f1f8e9', bg2: '#dcedc8', main: '#8bc34a', accent: '#689f38' },
-      { bg1: '#ede7f6', bg2: '#d1c4e9', main: '#673ab7', accent: '#512da8' }
-    ];
-    
-    const colorScheme = colors[index % colors.length];
-    
-    const svg = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bg${index}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:${colorScheme.bg1};stop-opacity:1" />
-          <stop offset="100%" style="stop-color:${colorScheme.bg2};stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" fill="url(#bg${index})"/>
-      <circle cx="256" cy="180" r="50" fill="${colorScheme.main}" opacity="0.7"/>
-      <rect x="206" y="250" width="100" height="60" rx="10" fill="${colorScheme.accent}" opacity="0.8"/>
-      <text x="256" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#ffffff">
-        デモ画像 ${index + 1}
-      </text>
-      <text x="256" y="350" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="${colorScheme.accent}">
-        ${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}
-      </text>
-      <text x="256" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" fill="#666666">
-        ${new Date().toLocaleString('ja-JP')}
-      </text>
-    </svg>`;
-    
-    // URLエンコードでBase64を回避
-    const encodedSvg = encodeURIComponent(svg);
-    return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-  } catch (error) {
-    console.error(`Error generating demo image ${index}:`, error);
-    // フォールバックとして最小限のSVG
-    const fallbackSvg = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" fill="#f0f0f0"/><text x="256" y="256" text-anchor="middle" font-family="Arial" font-size="20" fill="#999">Demo ${index + 1}</text></svg>`;
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(fallbackSvg)}`;
-  }
-}
+// デモ画像生成関数は削除 - エラー時はエラーを返す
 
 // 解像度を取得
 function getResolution(api) {

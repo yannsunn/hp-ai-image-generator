@@ -42,7 +42,11 @@ module.exports = async function handler(req, res) {
       else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
       else {
         console.log('No API keys found in environment variables');
-        apiToUse = 'demo';
+        return res.status(500).json({
+          success: false,
+          error: 'APIキーが設定されていません',
+          message: 'Vercelの環境変数にAPIキーを設定してください'
+        });
       }
     }
     
@@ -89,17 +93,22 @@ module.exports = async function handler(req, res) {
           break;
 
         default:
-          // デモモード
-          generatedImage = generateDemoImage(prompt);
-          cost = 0;
-          apiUsed = 'demo';
+          // 無効なAPIが選択された場合
+          return res.status(400).json({
+            success: false,
+            error: '無効なAPIが選択されました',
+            available_apis: ['openai', 'stability', 'replicate']
+          });
       }
     } catch (apiError) {
       console.error(`API Error (${apiToUse}):`, apiError);
-      // APIエラー時はデモにフォールバック
-      generatedImage = generateDemoImage(prompt);
-      cost = 0;
-      apiUsed = 'demo (fallback)';
+      // エラーをそのまま投げる - デモ画像は使わない
+      return res.status(500).json({
+        success: false,
+        error: '画像生成に失敗しました',
+        details: apiError.message,
+        api_attempted: apiToUse
+      });
     }
 
     const generationTime = Date.now() - startTime;
@@ -253,30 +262,4 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
   }
 }
 
-// デモ画像生成
-function generateDemoImage(prompt) {
-  const svg = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#e9ecef;stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      <rect width="512" height="512" fill="url(#bg)"/>
-      <circle cx="256" cy="200" r="60" fill="#6c757d" opacity="0.3"/>
-      <rect x="196" y="280" width="120" height="80" rx="10" fill="#495057" opacity="0.4"/>
-      <text x="256" y="320" text-anchor="middle" font-family="Arial" font-size="14" fill="#212529">
-        デモ画像
-      </text>
-      <text x="256" y="340" text-anchor="middle" font-family="Arial" font-size="10" fill="#6c757d">
-        ${prompt.substring(0, 30)}${prompt.length > 30 ? '...' : ''}
-      </text>
-      <text x="256" y="450" text-anchor="middle" font-family="Arial" font-size="8" fill="#adb5bd">
-        ${new Date().toLocaleString('ja-JP')}
-      </text>
-    </svg>`;
-  
-  // URLエンコードでBase64を回避
-  const encodedSvg = encodeURIComponent(svg);
-  return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-}
+// デモ画像生成関数は削除 - エラー時はエラーを返す
