@@ -44,21 +44,35 @@ module.exports = async function handler(req, res) {
       auth: process.env.REPLICATE_API_TOKEN
     });
 
-    // 簡単なモデル情報を取得してテスト
-    const model = await replicate.models.get('stability-ai', 'sdxl');
+    // 実際の画像生成APIを簡単にテスト
+    console.log('Testing actual model run...');
+    const testOutput = await replicate.run(
+      'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
+      {
+        input: {
+          prompt: 'A simple test image',
+          width: 512,
+          height: 512,
+          num_outputs: 1,
+          scheduler: 'K_EULER',
+          num_inference_steps: 10,
+          guidance_scale: 7.5
+        }
+      }
+    );
     
     return res.status(200).json({
       success: true,
-      message: 'Replicate connection successful',
+      message: 'Replicate connection and test generation successful',
       env: {
         hasToken,
         tokenLength,
         tokenPrefix
       },
-      model: {
-        name: model.name,
-        owner: model.owner,
-        description: model.description
+      testOutput: {
+        type: typeof testOutput,
+        isArray: Array.isArray(testOutput),
+        content: testOutput
       }
     });
 

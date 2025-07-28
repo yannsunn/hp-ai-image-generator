@@ -304,11 +304,20 @@ async function generateWithStability(prompt, apiKey, context = {}) {
 // Replicateで画像生成
 async function generateWithReplicate(prompt, apiToken, context = {}) {
   console.log('Initializing Replicate with token:', apiToken ? 'Token exists' : 'No token');
+  console.log('Token details:', {
+    exists: !!apiToken,
+    length: apiToken ? apiToken.length : 0,
+    prefix: apiToken ? apiToken.substring(0, 10) + '...' : 'none',
+    type: typeof apiToken
+  });
+  
   const replicate = new Replicate({
     auth: apiToken
   });
   
   try {
+    console.log('Running Replicate model with prompt:', prompt);
+    
     const output = await replicate.run(
       'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
       {
@@ -351,6 +360,13 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
     };
   } catch (error) {
     console.error('Replicate API Error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      name: error.name,
+      status: error.status,
+      response: error.response,
+      stack: error.stack
+    });
     throw error;
   }
 }
