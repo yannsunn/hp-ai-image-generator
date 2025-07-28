@@ -252,9 +252,42 @@ const ImageGenerationForm = () => {
       const data = await response.json();
       if (data.success) {
         console.log('画像が保存されました:', data.imageId);
+        
+        // ローカルストレージにも保存（KVが使えない場合のフォールバック）
+        if (data.warning) {
+          const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+          localHistory.unshift({
+            id: data.imageId,
+            image: image.src,
+            metadata: {
+              ...image,
+              createdAt: new Date().toISOString()
+            }
+          });
+          // 最大50件まで保存
+          if (localHistory.length > 50) {
+            localHistory.pop();
+          }
+          localStorage.setItem('imageHistory', JSON.stringify(localHistory));
+        }
       }
     } catch (err) {
       console.error('画像保存エラー:', err);
+      
+      // エラー時もローカルストレージに保存
+      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+      localHistory.unshift({
+        id: 'local-' + Date.now(),
+        image: image.src,
+        metadata: {
+          ...image,
+          createdAt: new Date().toISOString()
+        }
+      });
+      if (localHistory.length > 50) {
+        localHistory.pop();
+      }
+      localStorage.setItem('imageHistory', JSON.stringify(localHistory));
     }
   };
 
@@ -270,10 +303,19 @@ const ImageGenerationForm = () => {
       
       const data = await response.json();
       if (data.success) {
-        setImageHistory(data.images);
+        if (data.images.length > 0) {
+          setImageHistory(data.images);
+        } else if (data.warning) {
+          // KVが使えない場合はローカルストレージから取得
+          const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+          setImageHistory(localHistory);
+        }
       }
     } catch (err) {
       console.error('履歴取得エラー:', err);
+      // エラー時はローカルストレージから取得
+      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+      setImageHistory(localHistory);
     } finally {
       setIsLoadingHistory(false);
     }
