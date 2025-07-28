@@ -163,8 +163,10 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({
       success: false,
       error: 'サーバーエラー',
-      details: 'バッチ画像生成中にエラーが発生しました。',
-      message: error.message || 'Unknown error occurred'
+      details: error.message || 'バッチ画像生成中にエラーが発生しました。',
+      message: error.message || 'Unknown error occurred',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      apiUsed: apiToUse || 'unknown'
     });
   }
 }

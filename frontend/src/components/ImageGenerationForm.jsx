@@ -176,10 +176,22 @@ const ImageGenerationForm = () => {
         })
       });
 
-      const data = await response.json();
+      let data;
+      
+      // レスポンスの処理
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        // JSONパースエラーの場合
+        const errorText = await response.text();
+        console.error('API Response Parse Error:', errorText);
+        throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 200)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'Generation failed');
+        // エラーレスポンスの詳細を表示
+        console.error('API Error Details:', data);
+        throw new Error(data.details || data.error || 'Generation failed');
       }
 
       if (data.success) {
@@ -701,8 +713,18 @@ const ImageGenerationForm = () => {
 
             {/* エラー表示 */}
             {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                {error}
+              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <h3 className="text-red-800 font-semibold mb-2">エラーが発生しました</h3>
+                <p className="text-red-700">{error}</p>
+                <details className="mt-2">
+                  <summary className="cursor-pointer text-red-600 text-sm">詳細を表示</summary>
+                  <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
+                    {error}
+                  </pre>
+                </details>
+                <p className="mt-3 text-sm text-red-600">
+                  Vercelのログを確認するか、APIキーが正しく設定されているか確認してください。
+                </p>
               </div>
             )}
           </div>
