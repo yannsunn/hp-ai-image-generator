@@ -22,6 +22,9 @@ const ImageGenerationForm = () => {
   const [totalCost, setTotalCost] = useState(0);
   const [urlContent, setUrlContent] = useState(null);
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
+  const [detailedAnalysis, setDetailedAnalysis] = useState(null);
+  const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [isDetailedAnalysis, setIsDetailedAnalysis] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [imageHistory, setImageHistory] = useState([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
@@ -84,51 +87,93 @@ const ImageGenerationForm = () => {
   };
 
   // URLからコンテンツを解析
-  const analyzeUrl = async () => {
+  const analyzeUrl = async (detailed = false) => {
     if (!url.trim()) {
       setError('URLを入力してください');
       return;
     }
 
     setIsAnalyzingUrl(true);
+    setIsDetailedAnalysis(detailed);
     setError('');
+    setAnalysisProgress(0);
+    setDetailedAnalysis(null);
 
     try {
-      const response = await fetch('/api/analyze-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          url
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'URL解析に失敗しました');
-      }
-
-      if (data.success) {
-        setUrlContent(data.content);
-        setPrompt(data.suggested_prompt);
-        setContext({
-          industry: data.industry || '',
-          contentType: data.content_type || ''
+      if (detailed) {
+        // 詳細解析
+        const response = await fetch('/api/analyze-site', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url, detailed: true })
         });
-        
-        // スタイル提案も反映
-        if (data.style_suggestions) {
-          setPromptAnalysis(prev => ({
-            ...prev,
-            style_suggestions: data.style_suggestions.style_keywords || [],
-            color_palette: data.style_suggestions.color_palette || [],
-            composition: data.style_suggestions.composition || {}
-          }));
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'サイト解析に失敗しました');
         }
+
+        if (data.success) {
+          setDetailedAnalysis(data);
+          setPrompt(data.suggested_prompt);
+          setContext({
+            industry: data.industry || '',
+            contentType: 'hero'
+          });
+          
+          // テーマやスタイル情報を反映
+          if (data.visual_style) {
+            setPromptAnalysis(prev => ({
+              ...prev,
+              style_suggestions: data.visual_style.atmosphere || [],
+              color_palette: data.visual_style.color_hints || [],
+              themes: data.main_themes || []
+            }));
+          }
+          
+          // 進捗ログを表示
+          if (data.progress_log) {
+            console.log('解析進捗:', data.progress_log);
+          }
+        }
+        setIsAnalyzingUrl(false);
+        
+      } else {
+        // 簡易解析（既存の処理）
+        const response = await fetch('/api/analyze-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'URL解析に失敗しました');
+        }
+
+        if (data.success) {
+          setUrlContent(data.content);
+          setPrompt(data.suggested_prompt);
+          setContext({
+            industry: data.industry || '',
+            contentType: data.content_type || ''
+          });
+          
+          if (data.style_suggestions) {
+            setPromptAnalysis(prev => ({
+              ...prev,
+              style_suggestions: data.style_suggestions.style_keywords || [],
+              color_palette: data.style_suggestions.color_palette || [],
+              composition: data.style_suggestions.composition || {}
+            }));
+          }
+        }
+        setIsAnalyzingUrl(false);
       }
     } catch (err) {
       setError(err.message || 'URL解析に失敗しました');
-    } finally {
       setIsAnalyzingUrl(false);
     }
   };
@@ -549,7 +594,21 @@ const ImageGenerationForm = () => {
                           解析中
                         </>
                       ) : (
-                        '解析'
+                        '簡易解析'
+                      )}
+                    </button>
+                    <button
+                      onClick={() => analyzeUrl(true)}
+                      disabled={isAnalyzingUrl || !url.trim()}
+                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isAnalyzingUrl && isDetailedAnalysis ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          {analysisProgress}%
+                        </>
+                      ) : (
+                        '詳細解析'
                       )}
                     </button>
                   </div>
@@ -562,6 +621,49 @@ const ImageGenerationForm = () => {
                           業界: {context.industry} / タイプ: {context.contentType}
                         </p>
                       )}
+                    </div>
+                  )}
+                  
+                  {detailedAnalysis && (
+                    <div className="mt-3 p-4 bg-purple-50 rounded-lg">
+                      <h4 className="font-semibold text-purple-900 mb-2">詳細解析結果</h4>
+                      <div className="space-y-2 text-sm">
+                        <div>
+                          <span className="font-medium text-purple-800">解析ページ数:</span>
+                          <span className="text-purple-700 ml-2">
+                            {detailedAnalysis.pages_analyzed}ページ / {detailedAnalysis.pages_found}ページ発見
+                          </span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-purple-800">業界確実度:</span>
+                          <span className="text-purple-700 ml-2">
+                            {detailedAnalysis.industry_confidence === 'high' ? '高' : 
+                             detailedAnalysis.industry_confidence === 'medium' ? '中' : '低'}
+                          </span>
+                        </div>
+                        {detailedAnalysis.main_themes && detailedAnalysis.main_themes.length > 0 && (
+                          <div>
+                            <span className="font-medium text-purple-800">主要テーマ:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {detailedAnalysis.main_themes.map((theme, idx) => (
+                                <span key={idx} className="px-2 py-1 bg-purple-200 text-purple-800 rounded text-xs">
+                                  {theme}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {detailedAnalysis.visual_style && (
+                          <div>
+                            <span className="font-medium text-purple-800">推奨スタイル:</span>
+                            <span className="text-purple-700 ml-2">
+                              {detailedAnalysis.visual_style.tone}
+                              {detailedAnalysis.visual_style.atmosphere.length > 0 && 
+                                ` (${detailedAnalysis.visual_style.atmosphere.join(', ')})`}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
