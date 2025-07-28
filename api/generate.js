@@ -5,6 +5,8 @@ const { validatePrompt } = require('./utils/validation');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
+  console.log('Enhancing prompt with context:', context);
+  
   // 日本向けの明確な指示を追加
   const baseEnhancements = [
     'photorealistic',
@@ -20,22 +22,48 @@ function enhancePromptForJapan(prompt, context = {}) {
     'Tokyo office environment'
   ];
   
-  // コンテキストに基づいて追加
-  if (context.contentType === 'hero') {
-    japaneseEnhancements.push('professional Japanese businesspeople');
-    japaneseEnhancements.push('formal business attire');
-  } else if (context.contentType === 'team') {
-    japaneseEnhancements.push('diverse Japanese team');
-    japaneseEnhancements.push('collaborative atmosphere');
-  } else if (context.contentType === 'service') {
-    japaneseEnhancements.push('Japanese customer service');
-    japaneseEnhancements.push('omotenashi hospitality');
+  // 業界別の追加要素
+  const industryEnhancements = {
+    'technology': ['modern tech office', 'digital workspace', 'innovative technology environment'],
+    'healthcare': ['medical facility', 'healthcare professionals', 'clean medical environment'],
+    'education': ['educational setting', 'learning environment', 'academic atmosphere'],
+    'finance': ['financial district', 'banking environment', 'corporate finance setting'],
+    'consulting': ['consulting office', 'strategic meeting room', 'professional advisory setting'],
+    'restaurant': ['restaurant interior', 'culinary environment', 'dining establishment'],
+    'retail': ['retail store', 'shopping environment', 'commercial space'],
+    'manufacturing': ['modern factory', 'industrial setting', 'production facility'],
+    'realestate': ['property showcase', 'real estate office', 'architectural setting']
+  };
+  
+  // コンテンツタイプ別の追加要素
+  const contentTypeEnhancements = {
+    'hero': ['impressive hero image', 'strong visual impact', 'brand identity showcase'],
+    'about': ['company culture', 'organizational values', 'corporate identity'],
+    'service': ['service presentation', 'professional service delivery', 'customer-focused'],
+    'product': ['product showcase', 'feature highlights', 'professional presentation'],
+    'team': ['team collaboration', 'professional teamwork', 'group dynamics'],
+    'testimonial': ['customer satisfaction', 'success stories', 'trust building']
+  };
+  
+  // 業界に基づいて追加
+  if (context.industry && industryEnhancements[context.industry]) {
+    japaneseEnhancements.push(...industryEnhancements[context.industry]);
+    console.log(`Added industry enhancements for: ${context.industry}`);
+  }
+  
+  // コンテンツタイプに基づいて追加
+  if (context.contentType && contentTypeEnhancements[context.contentType]) {
+    japaneseEnhancements.push(...contentTypeEnhancements[context.contentType]);
+    console.log(`Added content type enhancements for: ${context.contentType}`);
   }
   
   // ネガティブプロンプトを強化
   const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic';
   
-  return `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
+  const enhancedPrompt = `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
+  console.log('Enhanced prompt length:', enhancedPrompt.length);
+  
+  return enhancedPrompt;
 }
 
 module.exports = async function handler(req, res) {

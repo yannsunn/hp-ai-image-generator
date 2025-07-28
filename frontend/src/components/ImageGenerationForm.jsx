@@ -200,25 +200,30 @@ const ImageGenerationForm = () => {
       // 複数枚生成の場合はバッチAPIを使用
       const endpoint = numberOfImages > 1 ? '/api/generate/batch' : '/api/generate';
       
+      const requestPayload = {
+        prompt: combinedPrompt,
+        api: selectedApi,
+        count: numberOfImages,
+        context: {
+          industry: context.industry,
+          contentType: context.contentType,
+          source_url: inputMode === 'url' ? url : undefined,
+          locale: 'ja-JP', // 日本向け設定
+          style_preferences: {
+            ethnicity: 'japanese',
+            cultural_context: 'japan',
+            text_language: 'japanese'
+          }
+        },
+        options: {}
+      };
+      
+      console.log('Sending request with context:', requestPayload.context);
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: combinedPrompt,
-          api: selectedApi,
-          count: numberOfImages,
-          context: {
-            ...context,
-            source_url: inputMode === 'url' ? url : undefined,
-            locale: 'ja-JP', // 日本向け設定
-            style_preferences: {
-              ethnicity: 'japanese',
-              cultural_context: 'japan',
-              text_language: 'japanese'
-            }
-          },
-          options: {}
-        })
+        body: JSON.stringify(requestPayload)
       });
 
       let data;
