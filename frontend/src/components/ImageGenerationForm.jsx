@@ -716,15 +716,34 @@ const ImageGenerationForm = () => {
               <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                 <h3 className="text-red-800 font-semibold mb-2">エラーが発生しました</h3>
                 <p className="text-red-700">{error}</p>
-                <details className="mt-2">
-                  <summary className="cursor-pointer text-red-600 text-sm">詳細を表示</summary>
-                  <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
-                    {error}
-                  </pre>
-                </details>
-                <p className="mt-3 text-sm text-red-600">
-                  Vercelのログを確認するか、APIキーが正しく設定されているか確認してください。
-                </p>
+                {error.includes('クレジット') && (
+                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>解決方法:</strong>
+                    </p>
+                    <ol className="mt-2 text-sm text-yellow-700 list-decimal list-inside space-y-1">
+                      <li><a href="https://replicate.com/account/billing" target="_blank" rel="noopener noreferrer" className="underline">Replicateアカウント</a>にアクセス</li>
+                      <li>クレジットを購入（最低$5から）</li>
+                      <li>購入後、数分待ってから再度お試しください</li>
+                    </ol>
+                    <p className="mt-2 text-xs text-yellow-600">
+                      代替案: OpenAIまたはStability AIのAPIを使用することもできます
+                    </p>
+                  </div>
+                )}
+                {!error.includes('クレジット') && (
+                  <>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-red-600 text-sm">詳細を表示</summary>
+                      <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-x-auto">
+                        {error}
+                      </pre>
+                    </details>
+                    <p className="mt-3 text-sm text-red-600">
+                      Vercelのログを確認するか、APIキーが正しく設定されているか確認してください。
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -822,12 +841,18 @@ const ImageGenerationForm = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {imageHistory.map((item) => (
                     <div key={item.id} className="bg-gray-50 rounded-lg overflow-hidden shadow hover:shadow-lg transition-shadow">
-                      <img
-                        src={item.image}
-                        alt={item.metadata.prompt}
-                        className="w-full h-48 object-cover cursor-pointer"
-                        onClick={() => loadFromHistory(item)}
-                      />
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.metadata.prompt}
+                          className="w-full h-48 object-cover cursor-pointer"
+                          onClick={() => loadFromHistory(item)}
+                        />
+                      ) : (
+                        <div className="w-full h-48 bg-gray-200 flex items-center justify-center text-gray-500">
+                          <p className="text-sm">画像データなし</p>
+                        </div>
+                      )}
                       <div className="p-3">
                         <p className="text-sm text-gray-600 line-clamp-2 mb-2">
                           {item.metadata.prompt}
@@ -836,12 +861,14 @@ const ImageGenerationForm = () => {
                           <span>{item.metadata.api}</span>
                           <span>{new Date(item.metadata.createdAt).toLocaleDateString('ja-JP')}</span>
                         </div>
-                        <button
-                          onClick={() => loadFromHistory(item)}
-                          className="mt-2 w-full px-3 py-1.5 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
-                        >
-                          この画像を使用
-                        </button>
+                        {item.image && (
+                          <button
+                            onClick={() => loadFromHistory(item)}
+                            className="mt-2 w-full px-3 py-1.5 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
+                          >
+                            この画像を使用
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}

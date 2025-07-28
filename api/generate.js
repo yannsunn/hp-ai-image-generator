@@ -300,6 +300,12 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       response: error.response,
       stack: error.stack
     });
+    
+    // クレジット不足エラーを分かりやすく処理
+    if (error.message && error.message.includes('402 Payment Required')) {
+      throw new Error('Replicate APIのクレジットが不足しています。https://replicate.com/account/billing でクレジットを購入してください。');
+    }
+    
     throw error;
   }
 }
