@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X } from 'lucide-react';
+import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
 import ImageEditingPanel from './ImageEditingPanel';
 
 const ImageGenerationForm = () => {
@@ -22,6 +22,9 @@ const ImageGenerationForm = () => {
   const [totalCost, setTotalCost] = useState(0);
   const [urlContent, setUrlContent] = useState(null);
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [imageHistory, setImageHistory] = useState([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // APIの可用性をチェック
   useEffect(() => {
@@ -185,6 +188,9 @@ const ImageGenerationForm = () => {
           };
           setGeneratedImages([...generatedImages, newImage]);
           setTotalCost(totalCost + data.metadata.cost);
+          
+          // 画像を自動保存
+          saveImageToHistory(newImage);
         } else {
           // 複数画像の場合
           const newImages = data.images.map((img, index) => ({
@@ -198,16 +204,87 @@ const ImageGenerationForm = () => {
           }));
           setGeneratedImages([...generatedImages, ...newImages]);
           setTotalCost(totalCost + data.total_cost);
+          
+          // 複数画像を自動保存
+          newImages.forEach(img => saveImageToHistory(img));
         }
         
-        setPrompt('');
-        setAdditionalInstructions(['']);
+        // プロンプトをクリアしない（追加生成を可能にする）
+        // setPrompt('');
+        // setAdditionalInstructions(['']);
       }
     } catch (err) {
       setError(err.message || '画像生成に失敗しました');
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  // 画像を履歴に保存
+  const saveImageToHistory = async (image) => {
+    try {
+      const response = await fetch('/api/images/save', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-User-Id': 'default' // 今後ユーザー認証を追加可能
+        },
+        body: JSON.stringify({
+          image: image.src,
+          metadata: {
+            prompt: image.prompt,
+            enhancedPrompt: image.enhancedPrompt,
+            api: image.api,
+            cost: image.cost,
+            analysis: image.analysis
+          }
+        })
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        console.log('画像が保存されました:', data.imageId);
+      }
+    } catch (err) {
+      console.error('画像保存エラー:', err);
+    }
+  };
+
+  // 履歴を取得
+  const loadHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch('/api/images/history', {
+        headers: {
+          'X-User-Id': 'default'
+        }
+      });
+      
+      const data = await response.json();
+      if (data.success) {
+        setImageHistory(data.images);
+      }
+    } catch (err) {
+      console.error('履歴取得エラー:', err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // 履歴から画像をロード
+  const loadFromHistory = (historyImage) => {
+    const loadedImage = {
+      id: Date.now(),
+      src: historyImage.image,
+      prompt: historyImage.metadata.prompt,
+      enhancedPrompt: historyImage.metadata.enhancedPrompt,
+      api: historyImage.metadata.api,
+      cost: historyImage.metadata.cost,
+      analysis: historyImage.metadata.analysis
+    };
+    setGeneratedImages([...generatedImages, loadedImage]);
+    setTotalCost(totalCost + loadedImage.cost);
+    setShowHistory(false);
   };
 
   // 追加の指示文を追加
@@ -279,6 +356,16 @@ const ImageGenerationForm = () => {
               AI画像生成システム
             </h1>
             <p className="text-gray-600">ホームページ制作に最適な画像を生成・編集</p>
+            <button
+              onClick={() => {
+                setShowHistory(true);
+                loadHistory();
+              }}
+              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <History className="w-4 h-4" />
+              生成履歴
+            </button>
           </div>
 
 
@@ -613,6 +700,67 @@ const ImageGenerationForm = () => {
           onClose={() => setEditingImage(null)}
           onSave={handleEditComplete}
         />
+      )}
+
+      {/* 履歴モーダル */}
+      {showHistory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                <History className="w-6 h-6" />
+                生成履歴
+              </h2>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {isLoadingHistory ? (
+                <div className="flex items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                </div>
+              ) : imageHistory.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {imageHistory.map((item) => (
+                    <div key={item.id} className="bg-gray-50 rounded-lg overflow-hidden shadow hover:shadow-lg transition-shadow">
+                      <img
+                        src={item.image}
+                        alt={item.metadata.prompt}
+                        className="w-full h-48 object-cover cursor-pointer"
+                        onClick={() => loadFromHistory(item)}
+                      />
+                      <div className="p-3">
+                        <p className="text-sm text-gray-600 line-clamp-2 mb-2">
+                          {item.metadata.prompt}
+                        </p>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span>{item.metadata.api}</span>
+                          <span>{new Date(item.metadata.createdAt).toLocaleDateString('ja-JP')}</span>
+                        </div>
+                        <button
+                          onClick={() => loadFromHistory(item)}
+                          className="mt-2 w-full px-3 py-1.5 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
+                        >
+                          この画像を使用
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <History className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">まだ生成履歴がありません</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
     </div>

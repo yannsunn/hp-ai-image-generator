@@ -7,6 +7,8 @@
     "node-fetch": "^2.6.7",
     "cheerio": "^1.0.0-rc.12",
     "openai": "^4.52.1",
-    "replicate": "^0.29.0"
+    "replicate": "^0.29.0",
+    "@vercel/kv": "^1.0.0",
+    "uuid": "^9.0.0"
   }
 }
