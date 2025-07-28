@@ -1,5 +1,5 @@
-import fetch from 'node-fetch';
-import * as cheerio from 'cheerio';
+const fetch = require('node-fetch');
+const cheerio = require('cheerio');
 
 // 業界判定用のキーワード辞書
 const industryKeywords = {
@@ -77,7 +77,7 @@ function isValidUrl(url) {
 }
 
 // URLからコンテンツを取得して解析
-export async function analyzeUrl(url) {
+async function analyzeUrl(url) {
   try {
     console.log('Starting URL analysis for:', url);
     
@@ -286,7 +286,7 @@ export async function analyzeUrl(url) {
   }
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('analyze-url handler called:', { 
     method: req.method, 
     url: req.url,

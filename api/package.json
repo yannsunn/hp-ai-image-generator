@@ -1,0 +1,12 @@
+{
+  "name": "hp-ai-image-generator-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "cheerio": "^1.0.0-rc.12",
+    "openai": "^4.52.1",
+    "replicate": "^0.29.0"
+  }
+}
