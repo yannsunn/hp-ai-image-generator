@@ -1,8 +1,8 @@
-import OpenAI from 'openai';
-import Replicate from 'replicate';
-import fetch from 'node-fetch';
+const OpenAI = require('openai');
+const Replicate = require('replicate');
+const fetch = require('node-fetch');
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   console.log('Batch generate handler called:', { method: req.method, url: req.url });
   
   // Enable CORS
@@ -36,13 +36,22 @@ export default async function handler(req, res) {
     }
 
     // API選択ロジック（環境変数ベース）
-    let apiToUse = selectedApi;
+    let apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
+    console.log('API selection:', { selectedApi, apiToUse });
+    
     if (apiToUse === 'auto') {
       if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
       else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
       else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
       else apiToUse = 'demo';
     }
+    
+    console.log('Final API to use:', apiToUse);
+    console.log('Environment check:', {
+      hasOpenAI: !!process.env.OPENAI_API_KEY,
+      hasStability: !!process.env.STABILITY_API_KEY,
+      hasReplicate: !!process.env.REPLICATE_API_TOKEN
+    });
 
     const images = [];
     const errors = [];
