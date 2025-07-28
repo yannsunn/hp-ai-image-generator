@@ -22,20 +22,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt, api_keys = {}, context = {}, selected_api = 'auto' } = req.body || {};
+    console.log('Generate API called:', req.body);
+    const { prompt, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // API選択ロジック
-    let apiToUse = selected_api;
+    // API選択ロジック（環境変数ベース）
+    let apiToUse = selectedApi;
     if (apiToUse === 'auto') {
-      if (api_keys.openai) apiToUse = 'openai';
-      else if (api_keys.stability) apiToUse = 'stability';
-      else if (api_keys.replicate) apiToUse = 'replicate';
-      else apiToUse = 'demo';
+      if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
+      else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
+      else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
+      else {
+        console.log('No API keys found in environment variables');
+        apiToUse = 'demo';
+      }
     }
+    console.log('Selected API:', apiToUse);
 
     let generatedImage, cost = 0, apiUsed = 'demo';
     const startTime = Date.now();
@@ -43,30 +48,30 @@ export default async function handler(req, res) {
     try {
       switch (apiToUse) {
         case 'openai':
-          if (!api_keys.openai) {
-            throw new Error('OpenAI API key is required');
+          if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OpenAI API key is not configured');
           }
-          const result = await generateWithOpenAI(prompt, api_keys.openai, context);
+          const result = await generateWithOpenAI(prompt, process.env.OPENAI_API_KEY, context);
           generatedImage = result.image;
           cost = result.cost;
           apiUsed = 'openai';
           break;
 
         case 'stability':
-          if (!api_keys.stability) {
-            throw new Error('Stability AI API key is required');
+          if (!process.env.STABILITY_API_KEY) {
+            throw new Error('Stability AI API key is not configured');
           }
-          const stabilityResult = await generateWithStability(prompt, api_keys.stability, context);
+          const stabilityResult = await generateWithStability(prompt, process.env.STABILITY_API_KEY, context);
           generatedImage = stabilityResult.image;
           cost = stabilityResult.cost;
           apiUsed = 'stability';
           break;
 
         case 'replicate':
-          if (!api_keys.replicate) {
-            throw new Error('Replicate API token is required');
+          if (!process.env.REPLICATE_API_TOKEN) {
+            throw new Error('Replicate API token is not configured');
           }
-          const replicateResult = await generateWithReplicate(prompt, api_keys.replicate, context);
+          const replicateResult = await generateWithReplicate(prompt, process.env.REPLICATE_API_TOKEN, context);
           generatedImage = replicateResult.image;
           cost = replicateResult.cost;
           apiUsed = 'replicate';
@@ -220,8 +225,7 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
 
 // デモ画像生成
 function generateDemoImage(prompt) {
-  const svg = `
-    <svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:#f8f9fa;stop-opacity:1" />
@@ -240,8 +244,9 @@ function generateDemoImage(prompt) {
       <text x="256" y="450" text-anchor="middle" font-family="Arial" font-size="8" fill="#adb5bd">
         ${new Date().toLocaleString('ja-JP')}
       </text>
-    </svg>
-  `;
+    </svg>`;
   
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  // URLエンコードでBase64を回避
+  const encodedSvg = encodeURIComponent(svg);
+  return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
 }
