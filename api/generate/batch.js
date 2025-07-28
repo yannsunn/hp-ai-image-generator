@@ -6,24 +6,36 @@ const { validatePrompt } = require('../utils/validation');
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
   // 日本向けの明確な指示を追加
+  const baseEnhancements = [
+    'photorealistic',
+    'high quality',
+    'professional photography',
+    '8k resolution'
+  ];
+  
   const japaneseEnhancements = [
-    'Japanese business people',
-    'Japanese office environment', 
-    'Tokyo modern office',
-    'Asian ethnicity',
-    'Japanese corporate culture',
-    'professional Japanese business style'
+    'Japanese people',
+    'East Asian features',
+    'Japanese business setting',
+    'Tokyo office environment'
   ];
   
   // コンテキストに基づいて追加
   if (context.contentType === 'hero') {
-    japaneseEnhancements.push('Japanese business professionals in suits');
+    japaneseEnhancements.push('professional Japanese businesspeople');
+    japaneseEnhancements.push('formal business attire');
+  } else if (context.contentType === 'team') {
+    japaneseEnhancements.push('diverse Japanese team');
+    japaneseEnhancements.push('collaborative atmosphere');
+  } else if (context.contentType === 'service') {
+    japaneseEnhancements.push('Japanese customer service');
+    japaneseEnhancements.push('omotenashi hospitality');
   }
   
-  // 西洋的な要素を避ける指示
-  const avoidTerms = ', avoid Western faces, avoid Caucasian people, Asian people only';
+  // ネガティブプロンプトを強化
+  const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic';
   
-  return `${prompt}, ${japaneseEnhancements.join(', ')}${avoidTerms}`;
+  return `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
 }
 
 module.exports = async function handler(req, res) {
@@ -365,17 +377,24 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
   try {
     console.log('Running Replicate model with prompt:', prompt);
     
+    // Replicate用のプロンプトを調整
+    const replicatePrompt = prompt.replace('negative prompt:', '');
+    const negativeMatch = prompt.match(/negative prompt: ([^,]+)/i);
+    const negativePrompt = negativeMatch ? negativeMatch[1] : 'low quality, blurry, distorted';
+    
     const output = await replicate.run(
       'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
       {
         input: {
-          prompt: prompt,
+          prompt: replicatePrompt,
+          negative_prompt: negativePrompt,
           width: 1024,
           height: 1024,
           num_outputs: 1,
-          scheduler: 'K_EULER',
-          num_inference_steps: 30,
-          guidance_scale: 7.5
+          scheduler: 'DPMSolverMultistep',
+          num_inference_steps: 50,
+          guidance_scale: 9,
+          seed: Math.floor(Math.random() * 1000000)
         }
       }
     );
