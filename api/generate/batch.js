@@ -78,10 +78,16 @@ module.exports = async function handler(req, res) {
         });
         totalCost += result.value.metadata.cost;
       } else {
-        console.error(`Image ${index} generation failed:`, result.reason);
+        console.error(`Image ${index} generation failed:`, {
+          reason: result.reason,
+          message: result.reason?.message,
+          stack: result.reason?.stack,
+          apiUsed: apiToUse
+        });
         errors.push({
           index,
-          error: result.reason.message || 'Generation failed'
+          error: result.reason.message || 'Generation failed',
+          details: result.reason.toString()
         });
         
         // エラー時はデモ画像を追加
@@ -93,7 +99,9 @@ module.exports = async function handler(req, res) {
             enhanced_prompt: prompt + ' - Professional Japanese style',
             api_used: 'demo (error fallback)',
             cost: 0,
-            error: result.reason.message
+            error: result.reason.message,
+            errorDetails: result.reason.toString(),
+            errorStack: process.env.NODE_ENV === 'development' ? result.reason.stack : undefined
           }
         });
       }
@@ -269,7 +277,10 @@ async function generateWithStability(prompt, apiKey, context = {}) {
 
 // Replicateで画像生成
 async function generateWithReplicate(prompt, apiToken, context = {}) {
-  const replicate = new Replicate({ auth: apiToken });
+  console.log('Initializing Replicate with token:', apiToken ? 'Token exists' : 'No token');
+  const replicate = new Replicate({
+    auth: apiToken
+  });
   
   try {
     const output = await replicate.run(
@@ -287,8 +298,24 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       }
     );
     
-    // Replicateは直接URLを返すため、base64に変換
-    const imageResponse = await fetch(output[0]);
+    console.log('Replicate output:', output);
+    
+    // Replicateは配列またはURLを返す
+    const imageUrl = Array.isArray(output) ? output[0] : output;
+    
+    if (!imageUrl) {
+      throw new Error('No image URL returned from Replicate');
+    }
+    
+    console.log('Fetching image from URL:', imageUrl);
+    
+    // 画像をbase64に変換
+    const imageResponse = await fetch(imageUrl);
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+    }
+    
     const imageBuffer = await imageResponse.buffer();
     const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
     
