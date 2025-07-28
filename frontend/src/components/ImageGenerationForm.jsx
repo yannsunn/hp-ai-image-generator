@@ -255,39 +255,61 @@ const ImageGenerationForm = () => {
         
         // ローカルストレージにも保存（KVが使えない場合のフォールバック）
         if (data.warning) {
-          const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
-          localHistory.unshift({
-            id: data.imageId,
-            image: image.src,
-            metadata: {
-              ...image,
-              createdAt: new Date().toISOString()
+          try {
+            const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+            // 画像データを保存せず、メタデータのみ保存
+            localHistory.unshift({
+              id: data.imageId,
+              // 画像は保存しない（容量節約）
+              metadata: {
+                prompt: image.prompt,
+                enhancedPrompt: image.enhancedPrompt,
+                api: image.api,
+                cost: image.cost,
+                createdAt: new Date().toISOString()
+              }
+            });
+            // 最大20件まで保存（容量節約）
+            if (localHistory.length > 20) {
+              localHistory.pop();
             }
-          });
-          // 最大50件まで保存
-          if (localHistory.length > 50) {
-            localHistory.pop();
+            localStorage.setItem('imageHistory', JSON.stringify(localHistory));
+          } catch (storageError) {
+            console.warn('LocalStorage保存エラー:', storageError);
+            // 容量エラーの場合は履歴をクリア
+            if (storageError.name === 'QuotaExceededError') {
+              localStorage.removeItem('imageHistory');
+            }
           }
-          localStorage.setItem('imageHistory', JSON.stringify(localHistory));
         }
       }
     } catch (err) {
       console.error('画像保存エラー:', err);
       
-      // エラー時もローカルストレージに保存
-      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
-      localHistory.unshift({
-        id: 'local-' + Date.now(),
-        image: image.src,
-        metadata: {
-          ...image,
-          createdAt: new Date().toISOString()
+      // エラー時もローカルストレージに保存（メタデータのみ）
+      try {
+        const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+        localHistory.unshift({
+          id: 'local-' + Date.now(),
+          // 画像は保存しない（容量節約）
+          metadata: {
+            prompt: image.prompt,
+            enhancedPrompt: image.enhancedPrompt,
+            api: image.api,
+            cost: image.cost,
+            createdAt: new Date().toISOString()
+          }
+        });
+        if (localHistory.length > 20) {
+          localHistory.pop();
         }
-      });
-      if (localHistory.length > 50) {
-        localHistory.pop();
+        localStorage.setItem('imageHistory', JSON.stringify(localHistory));
+      } catch (storageError) {
+        console.warn('LocalStorage保存エラー:', storageError);
+        if (storageError.name === 'QuotaExceededError') {
+          localStorage.removeItem('imageHistory');
+        }
       }
-      localStorage.setItem('imageHistory', JSON.stringify(localHistory));
     }
   };
 

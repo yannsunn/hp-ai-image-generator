@@ -3,6 +3,29 @@ const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const { validatePrompt } = require('./utils/validation');
 
+// 日本向けプロンプトの強化
+function enhancePromptForJapan(prompt, context = {}) {
+  // 日本向けの明確な指示を追加
+  const japaneseEnhancements = [
+    'Japanese business people',
+    'Japanese office environment', 
+    'Tokyo modern office',
+    'Asian ethnicity',
+    'Japanese corporate culture',
+    'professional Japanese business style'
+  ];
+  
+  // コンテキストに基づいて追加
+  if (context.contentType === 'hero') {
+    japaneseEnhancements.push('Japanese business professionals in suits');
+  }
+  
+  // 西洋的な要素を避ける指示
+  const avoidTerms = ', avoid Western faces, avoid Caucasian people, Asian people only';
+  
+  return `${prompt}, ${japaneseEnhancements.join(', ')}${avoidTerms}`;
+}
+
 module.exports = async function handler(req, res) {
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -66,7 +89,8 @@ module.exports = async function handler(req, res) {
           if (!process.env.OPENAI_API_KEY) {
             throw new Error('OpenAI API key is not configured');
           }
-          const result = await generateWithOpenAI(prompt, process.env.OPENAI_API_KEY, context);
+          const japanesePrompt = enhancePromptForJapan(prompt, context);
+          const result = await generateWithOpenAI(japanesePrompt, process.env.OPENAI_API_KEY, context);
           generatedImage = result.image;
           cost = result.cost;
           apiUsed = 'openai';
@@ -76,7 +100,8 @@ module.exports = async function handler(req, res) {
           if (!process.env.STABILITY_API_KEY) {
             throw new Error('Stability AI API key is not configured');
           }
-          const stabilityResult = await generateWithStability(prompt, process.env.STABILITY_API_KEY, context);
+          const japanesePromptStability = enhancePromptForJapan(prompt, context);
+          const stabilityResult = await generateWithStability(japanesePromptStability, process.env.STABILITY_API_KEY, context);
           generatedImage = stabilityResult.image;
           cost = stabilityResult.cost;
           apiUsed = 'stability';
@@ -86,7 +111,8 @@ module.exports = async function handler(req, res) {
           if (!process.env.REPLICATE_API_TOKEN) {
             throw new Error('Replicate API token is not configured');
           }
-          const replicateResult = await generateWithReplicate(prompt, process.env.REPLICATE_API_TOKEN, context);
+          const japanesePromptReplicate = enhancePromptForJapan(prompt, context);
+          const replicateResult = await generateWithReplicate(japanesePromptReplicate, process.env.REPLICATE_API_TOKEN, context);
           generatedImage = replicateResult.image;
           cost = replicateResult.cost;
           apiUsed = 'replicate';

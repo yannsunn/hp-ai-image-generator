@@ -3,6 +3,29 @@ const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const { validatePrompt } = require('../utils/validation');
 
+// 日本向けプロンプトの強化
+function enhancePromptForJapan(prompt, context = {}) {
+  // 日本向けの明確な指示を追加
+  const japaneseEnhancements = [
+    'Japanese business people',
+    'Japanese office environment', 
+    'Tokyo modern office',
+    'Asian ethnicity',
+    'Japanese corporate culture',
+    'professional Japanese business style'
+  ];
+  
+  // コンテキストに基づいて追加
+  if (context.contentType === 'hero') {
+    japaneseEnhancements.push('Japanese business professionals in suits');
+  }
+  
+  // 西洋的な要素を避ける指示
+  const avoidTerms = ', avoid Western faces, avoid Caucasian people, Asian people only';
+  
+  return `${prompt}, ${japaneseEnhancements.join(', ')}${avoidTerms}`;
+}
+
 module.exports = async function handler(req, res) {
   console.log('Batch generate handler called:', { method: req.method, url: req.url });
   
@@ -159,21 +182,25 @@ async function generateSingleImage(prompt, apiToUse, context, index) {
         if (!process.env.OPENAI_API_KEY) {
           throw new Error('OpenAI API key is not configured');
         }
-        result = await generateWithOpenAI(prompt, process.env.OPENAI_API_KEY, context);
+        const japanesePromptOpenAI = enhancePromptForJapan(prompt, context);
+        result = await generateWithOpenAI(japanesePromptOpenAI, process.env.OPENAI_API_KEY, context);
         break;
 
       case 'stability':
         if (!process.env.STABILITY_API_KEY) {
           throw new Error('Stability AI API key is not configured');
         }
-        result = await generateWithStability(prompt, process.env.STABILITY_API_KEY, context);
+        const japanesePromptStability = enhancePromptForJapan(prompt, context);
+        result = await generateWithStability(japanesePromptStability, process.env.STABILITY_API_KEY, context);
         break;
 
       case 'replicate':
         if (!process.env.REPLICATE_API_TOKEN) {
           throw new Error('Replicate API token is not configured');
         }
-        result = await generateWithReplicate(prompt, process.env.REPLICATE_API_TOKEN, context);
+        // 日本向けのプロンプトを強化
+        const japanesePrompt = enhancePromptForJapan(prompt, context);
+        result = await generateWithReplicate(japanesePrompt, process.env.REPLICATE_API_TOKEN, context);
         break;
 
       default:
