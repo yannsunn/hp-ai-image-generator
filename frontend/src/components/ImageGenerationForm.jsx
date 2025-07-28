@@ -183,9 +183,14 @@ const ImageGenerationForm = () => {
         data = await response.json();
       } catch (parseError) {
         // JSONパースエラーの場合
-        const errorText = await response.text();
-        console.error('API Response Parse Error:', errorText);
-        throw new Error(`Server error: ${response.status} - ${errorText.substring(0, 200)}`);
+        console.error('API Response Parse Error:', parseError);
+        
+        // body stream already read エラーの場合
+        if (parseError.message.includes('body stream already read')) {
+          throw new Error('レスポンス処理エラー。再度お試しください。');
+        }
+        
+        throw new Error(`Server error: ${response.status} - ${parseError.message}`);
       }
 
       if (!response.ok) {

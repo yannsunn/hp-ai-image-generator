@@ -97,13 +97,28 @@ module.exports = async function handler(req, res) {
     const errors = [];
     let totalCost = 0;
     
-    // 各画像を並列で生成
-    const generatePromises = [];
-    for (let i = 0; i < count; i++) {
-      generatePromises.push(generateSingleImage(prompt, apiToUse, context, i, availableApis));
-    }
+    // 大量生成時のタイムアウトを防ぐため、バッチ処理
+    // Replicate APIは遅いので2枚ずつ処理
+    const batchSize = apiToUse === 'replicate' ? 2 : 4;
+    const results = [];
     
-    const results = await Promise.allSettled(generatePromises);
+    console.log(`Processing ${count} images in batches of ${batchSize}`);
+    
+    for (let i = 0; i < count; i += batchSize) {
+      const batch = [];
+      for (let j = i; j < Math.min(i + batchSize, count); j++) {
+        batch.push(generateSingleImage(prompt, apiToUse, context, j, availableApis));
+      }
+      
+      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}...`);
+      const batchResults = await Promise.allSettled(batch);
+      results.push(...batchResults);
+      
+      // バッチ間に少し待機（Replicateのレートリミット対策）
+      if (i + batchSize < count) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+    }
     
     // 結果を処理
     results.forEach((result, index) => {
