@@ -400,8 +400,7 @@ async function generateWithReplicate(prompt, apiToken) {
 
 // デモ画像生成
 function generateDemoImage(prompt, index = 1) {
-  const svg = `
-    <svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
+  const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <linearGradient id="grad${index}" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
@@ -420,8 +419,9 @@ function generateDemoImage(prompt, index = 1) {
       <text x="200" y="350" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">
         ${new Date().toLocaleTimeString('ja-JP')}
       </text>
-    </svg>
-  `;
+    </svg>`;
   
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+  // URLエンコードでBase64を回避
+  const encodedSvg = encodeURIComponent(svg);
+  return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
 }
