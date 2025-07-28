@@ -60,11 +60,12 @@ module.exports = async function handler(req, res) {
     
     // Vercel KVが設定されていない場合のフォールバック
     if (error.message && error.message.includes('KV_REST_API_URL')) {
-      return res.status(200).json({
-        success: true,
-        imageId: 'demo-' + Date.now(),
-        message: '画像が保存されました（デモモード）',
-        warning: 'Vercel KVが設定されていないため、実際には保存されていません'
+      // エラーとして処理し、デモIDは返さない
+      return res.status(503).json({
+        success: false,
+        error: 'データベース未設定',
+        message: 'Vercel KVが設定されていないため、画像を保存できません',
+        warning: 'ローカルストレージのみ使用可能です'
       });
     }
     

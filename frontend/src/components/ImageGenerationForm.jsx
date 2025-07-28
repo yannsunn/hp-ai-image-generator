@@ -263,6 +263,11 @@ const ImageGenerationForm = () => {
       
       const data = await response.json();
       if (data.success) {
+        // デモ画像は保存しない
+        if (!data.imageId || data.imageId.startsWith('demo-')) {
+          console.warn('デモ画像は保存されません');
+          return;
+        }
         console.log('画像が保存されました:', data.imageId);
         
         // ローカルストレージにも保存（KVが使えない場合のフォールバック）

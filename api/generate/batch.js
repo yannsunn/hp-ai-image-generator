@@ -68,17 +68,22 @@ module.exports = async function handler(req, res) {
     apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
     console.log('API selection:', { selectedApi, apiToUse });
     
+    // 利用可能APIのリストを作成
+    const availableApis = [];
+    if (process.env.OPENAI_API_KEY) availableApis.push('openai');
+    if (process.env.STABILITY_API_KEY) availableApis.push('stability');
+    if (process.env.REPLICATE_API_TOKEN) availableApis.push('replicate');
+    
     if (apiToUse === 'auto') {
-      if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
-      else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
-      else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
-      else {
+      if (availableApis.length === 0) {
         return res.status(500).json({
           success: false,
           error: 'APIキーが設定されていません',
           message: 'Vercelの環境変数にAPIキーを設定してください'
         });
       }
+      // 優先順位: OpenAI > Stability > Replicate
+      apiToUse = availableApis[0];
     }
     
     console.log('Final API to use:', apiToUse);
@@ -95,7 +100,7 @@ module.exports = async function handler(req, res) {
     // 各画像を並列で生成
     const generatePromises = [];
     for (let i = 0; i < count; i++) {
-      generatePromises.push(generateSingleImage(prompt, apiToUse, context, i));
+      generatePromises.push(generateSingleImage(prompt, apiToUse, context, i, availableApis));
     }
     
     const results = await Promise.allSettled(generatePromises);
@@ -175,14 +180,25 @@ module.exports = async function handler(req, res) {
 }
 
 // 単一画像を生成
-async function generateSingleImage(prompt, apiToUse, context, index) {
+async function generateSingleImage(prompt, apiToUse, context, index, availableApis = []) {
   const startTime = Date.now();
   
-  try {
-    let result;
-    console.log(`Generating image ${index + 1} with ${apiToUse} API`);
+  // 試したAPIの記録
+  const triedApis = [];
+  let lastError = null;
+  
+  // 指定されたAPIを優先して試し、失敗したら他のAPIを試す
+  const apisToTry = [apiToUse, ...availableApis.filter(api => api !== apiToUse)];
+  
+  for (const currentApi of apisToTry) {
+    if (triedApis.includes(currentApi)) continue;
     
-    switch (apiToUse) {
+    try {
+      let result;
+      console.log(`Generating image ${index + 1} with ${currentApi} API`);
+      triedApis.push(currentApi);
+      
+      switch (currentApi) {
       case 'openai':
         if (!process.env.OPENAI_API_KEY) {
           throw new Error('OpenAI API key is not configured');
@@ -208,27 +224,43 @@ async function generateSingleImage(prompt, apiToUse, context, index) {
         result = await generateWithReplicate(japanesePrompt, process.env.REPLICATE_API_TOKEN, context);
         break;
 
-      default:
-        // 無効なAPIが選択された場合
-        throw new Error(`無効なAPIが選択されました: ${apiToUse}`);
-    }
-    
-    return {
-      image: result.image,
-      metadata: {
-        original_prompt: prompt,
-        enhanced_prompt: prompt + ' - Professional Japanese style',
-        api_used: apiToUse,
-        cost: result.cost,
-        generation_time: Date.now() - startTime,
-        resolution: getResolution(apiToUse),
-        format: 'PNG/JPEG'
+        default:
+          // 無効なAPIが選択された場合
+          throw new Error(`無効なAPIが選択されました: ${currentApi}`);
       }
-    };
-  } catch (error) {
-    console.error(`Generation error for image ${index}:`, error);
-    throw error;
+      
+      // 成功したら結果を返す
+      return {
+        image: result.image,
+        metadata: {
+          original_prompt: prompt,
+          enhanced_prompt: prompt + ' - Professional Japanese style',
+          api_used: currentApi,
+          cost: result.cost,
+          generation_time: Date.now() - startTime,
+          resolution: getResolution(currentApi),
+          format: 'PNG/JPEG',
+          tried_apis: triedApis
+        }
+      };
+    } catch (error) {
+      console.error(`Generation error for image ${index} with ${currentApi}:`, error);
+      lastError = error;
+      
+      // クレジット不足エラーの場合は、他のAPIを試す
+      if (error.message && (error.message.includes('クレジット') || error.message.includes('402'))) {
+        console.log(`${currentApi} API has insufficient credit, trying another API...`);
+        continue;
+      }
+      
+      // その他のエラーの場合も次のAPIを試す
+      continue;
+    }
   }
+  
+  // すべてのAPIが失敗した場合
+  console.error(`All APIs failed for image ${index}:`, triedApis);
+  throw new Error(`すべてのAPIで生成に失敗しました (${triedApis.join(', ')}): ${lastError?.message || 'Unknown error'}`);
 }
 
 // OpenAI DALL-E 3で画像生成
