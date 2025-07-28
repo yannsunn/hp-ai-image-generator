@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
+const { validatePrompt } = require('./utils/validation');
 
 module.exports = async function handler(req, res) {
   // Enable CORS
@@ -25,8 +26,10 @@ module.exports = async function handler(req, res) {
     console.log('Generate API called:', req.body);
     const { prompt, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+    // プロンプトの検証
+    const promptValidation = validatePrompt(prompt);
+    if (!promptValidation.valid) {
+      return res.status(400).json({ error: promptValidation.error });
     }
 
     // API選択ロジック（環境変数ベース）

@@ -1,6 +1,7 @@
 const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
+const { validatePrompt } = require('../utils/validation');
 
 module.exports = async function handler(req, res) {
   console.log('Batch generate handler called:', { method: req.method, url: req.url });
@@ -27,8 +28,10 @@ module.exports = async function handler(req, res) {
     
     const { prompt, count = 1, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
+    // プロンプトの検証
+    const promptValidation = validatePrompt(prompt);
+    if (!promptValidation.valid) {
+      return res.status(400).json({ error: promptValidation.error });
     }
 
     if (count > 8) {
