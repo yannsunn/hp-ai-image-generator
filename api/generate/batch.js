@@ -5,7 +5,6 @@ const { validatePrompt } = require('../utils/validation');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
-  console.log('Enhancing prompt with context:', context);
   
   // 日本向けの明確な指示を追加
   const baseEnhancements = [
@@ -48,26 +47,22 @@ function enhancePromptForJapan(prompt, context = {}) {
   // 業界に基づいて追加
   if (context.industry && industryEnhancements[context.industry]) {
     japaneseEnhancements.push(...industryEnhancements[context.industry]);
-    console.log(`Added industry enhancements for: ${context.industry}`);
   }
   
   // コンテンツタイプに基づいて追加
   if (context.contentType && contentTypeEnhancements[context.contentType]) {
     japaneseEnhancements.push(...contentTypeEnhancements[context.contentType]);
-    console.log(`Added content type enhancements for: ${context.contentType}`);
   }
   
   // ネガティブプロンプトを強化
   const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic';
   
   const enhancedPrompt = `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
-  console.log('Enhanced prompt length:', enhancedPrompt.length);
   
   return enhancedPrompt;
 }
 
 module.exports = async function handler(req, res) {
-  console.log('Batch generate handler called:', { method: req.method, url: req.url });
   
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -90,7 +85,6 @@ module.exports = async function handler(req, res) {
   try {
 
   if (req.method === 'POST') {
-    console.log('Batch generate request:', req.body);
     
     const { prompt, count = 1, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
@@ -106,7 +100,6 @@ module.exports = async function handler(req, res) {
 
     // API選択ロジック（環境変数ベース）
     apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
-    console.log('API selection:', { selectedApi, apiToUse });
     
     // 利用可能APIのリストを作成
     const availableApis = [];
@@ -126,12 +119,6 @@ module.exports = async function handler(req, res) {
       apiToUse = availableApis[0];
     }
     
-    console.log('Final API to use:', apiToUse);
-    console.log('Environment check:', {
-      hasOpenAI: !!process.env.OPENAI_API_KEY,
-      hasStability: !!process.env.STABILITY_API_KEY,
-      hasReplicate: !!process.env.REPLICATE_API_TOKEN
-    });
 
     const images = [];
     const errors = [];
@@ -142,7 +129,6 @@ module.exports = async function handler(req, res) {
     const batchSize = apiToUse === 'replicate' ? 2 : 4;
     const results = [];
     
-    console.log(`Processing ${count} images in batches of ${batchSize}`);
     
     for (let i = 0; i < count; i += batchSize) {
       const batch = [];
@@ -150,7 +136,6 @@ module.exports = async function handler(req, res) {
         batch.push(generateSingleImage(prompt, apiToUse, context, j, availableApis));
       }
       
-      console.log(`Processing batch ${Math.floor(i / batchSize) + 1}...`);
       const batchResults = await Promise.allSettled(batch);
       results.push(...batchResults);
       
@@ -186,7 +171,6 @@ module.exports = async function handler(req, res) {
       }
     });
 
-    console.log(`Batch generation completed: ${images.length} images, ${errors.length} errors, $${totalCost.toFixed(4)} cost`);
     
     // エラーがある場合は失敗として処理
     if (errors.length > 0 && images.length === 0) {
@@ -263,7 +247,6 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
     
     try {
       let result;
-      console.log(`Generating image ${index + 1} with ${currentApi} API`);
       triedApis.push(currentApi);
       
       switch (currentApi) {
@@ -289,9 +272,7 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
         }
         // 日本向けのプロンプトを強化
         const japanesePrompt = enhancePromptForJapan(prompt, context);
-        console.log(`Starting Replicate generation for image ${index + 1}`);
         result = await generateWithReplicate(japanesePrompt, process.env.REPLICATE_API_TOKEN, context);
-        console.log(`Completed Replicate generation for image ${index + 1}`);
         break;
 
         default:
@@ -319,7 +300,6 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
       
       // クレジット不足エラーの場合は、他のAPIを試す
       if (error.message && (error.message.includes('クレジット') || error.message.includes('402'))) {
-        console.log(`${currentApi} API has insufficient credit, trying another API...`);
         continue;
       }
       
@@ -405,20 +385,12 @@ async function generateWithStability(prompt, apiKey, context = {}) {
 
 // Replicateで画像生成
 async function generateWithReplicate(prompt, apiToken, context = {}) {
-  console.log('Initializing Replicate with token:', apiToken ? 'Token exists' : 'No token');
-  console.log('Token details:', {
-    exists: !!apiToken,
-    length: apiToken ? apiToken.length : 0,
-    prefix: apiToken ? apiToken.substring(0, 10) + '...' : 'none',
-    type: typeof apiToken
-  });
   
   const replicate = new Replicate({
     auth: apiToken
   });
   
   try {
-    console.log('Running Replicate model with prompt:', prompt.substring(0, 100) + '...');
     
     // Replicate用のプロンプトを調整
     const replicatePrompt = prompt.replace('negative prompt:', '').substring(0, 500); // プロンプトを短縮
@@ -443,7 +415,6 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       }
     );
     
-    console.log('Replicate output:', output);
     
     // Replicateは配列またはURLを返す
     const imageUrl = Array.isArray(output) ? output[0] : output;
@@ -452,7 +423,6 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       throw new Error('No image URL returned from Replicate');
     }
     
-    console.log('Fetching image from URL:', imageUrl);
     
     // 画像をbase64に変換
     const imageResponse = await fetch(imageUrl);

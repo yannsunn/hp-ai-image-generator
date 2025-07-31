@@ -79,7 +79,6 @@ function isValidUrl(url) {
 // URLからコンテンツを取得して解析
 async function analyzeUrl(url) {
   try {
-    console.log('Starting URL analysis for:', url);
     
     // URLの安全性検証
     if (!isValidUrl(url)) {
@@ -94,7 +93,6 @@ async function analyzeUrl(url) {
     
     let response;
     try {
-      console.log('Fetching URL content...');
       response = await fetch(url, {
         signal: controller.signal,
         headers: {
@@ -107,7 +105,6 @@ async function analyzeUrl(url) {
       });
       
       clearTimeout(timeout);
-      console.log('Fetch completed, status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -115,7 +112,6 @@ async function analyzeUrl(url) {
       
       // テキストとして取得
       const html = await response.text();
-      console.log('HTML content received, length:', html.length);
       
       // Cheerioでパース
       const $ = cheerio.load(html);
@@ -214,7 +210,6 @@ async function analyzeUrl(url) {
       
       const suggestedPrompt = `${basePrompt}, ${contentPrompt}, professional Japanese business style, high quality, modern design`;
 
-      console.log('Analysis completed successfully');
       
       return {
         success: true,
@@ -287,11 +282,6 @@ async function analyzeUrl(url) {
 }
 
 module.exports = async function handler(req, res) {
-  console.log('analyze-url handler called:', { 
-    method: req.method, 
-    url: req.url,
-    body: req.body 
-  });
   
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -322,9 +312,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    console.log('Analyzing URL:', url);
     const result = await analyzeUrl(url);
-    console.log('Analysis result:', { success: result.success, error: result.error });
     
     return res.status(result.success ? 200 : 400).json(result);
 

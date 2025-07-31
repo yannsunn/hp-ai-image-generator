@@ -20,17 +20,9 @@ export default function handler(req, res) {
       return res.status(400).json({ error: 'URLが指定されていません' });
     }
 
-    // Simplified response for demo
-    return res.status(200).json({
-      success: true,
-      content: {
-        title: 'ウェブサイトのタイトル',
-        description: 'ウェブサイトの説明',
-        text_preview: 'コンテンツのプレビュー...'
-      },
-      industry: 'general',
-      content_type: 'hero',
-      suggested_prompt: 'Professional Japanese business website hero image, modern clean design'
+    // This endpoint is deprecated - use /api/analyze-url instead
+    return res.status(410).json({ 
+      error: 'このエンドポイントは廃止されました。/api/analyze-url を使用してください。' 
     });
   }
 

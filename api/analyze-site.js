@@ -327,7 +327,6 @@ function generateDetailedPrompt(industry, themes, visualStyle, topPageData) {
 }
 
 module.exports = async function handler(req, res) {
-  console.log('analyze-site handler called');
   
   // Enable CORS
   res.setHeader('Access-Control-Allow-Credentials', true);

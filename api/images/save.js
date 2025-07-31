@@ -44,7 +44,6 @@ module.exports = async function handler(req, res) {
       const userId = req.headers['x-user-id'] || 'default';
       await kv.sadd(`user:${userId}:images`, imageId);
       
-      console.log(`Image saved: ${imageId}`);
       
       return res.status(200).json({
         success: true,

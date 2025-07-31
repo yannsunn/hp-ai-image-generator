@@ -99,22 +99,18 @@ class UltraExecutionEngine {
   
   async executeUltraGeneration(prompt, context, apiPreference, count) {
     const startTime = Date.now();
-    console.log('🚀 ULTRA GENERATION ENGINE ACTIVATED');
     
     // インテリジェント・プロンプト生成
     const ultraPrompt = this.promptEngine.generateUltraPrompt(prompt, context);
-    console.log('✨ Ultra prompt generated:', ultraPrompt.positive.substring(0, 100) + '...');
     
     // 並列実行戦略の決定
     const strategy = this.determineOptimalStrategy(count, apiPreference);
-    console.log('🎯 Execution strategy:', strategy);
     
     const results = await this.executeWithStrategy(ultraPrompt, context, strategy);
     
     const executionTime = Date.now() - startTime;
     this.recordPerformance(executionTime, count, strategy.api);
     
-    console.log('⚡ ULTRA GENERATION COMPLETED in', executionTime, 'ms');
     return results;
   }
   
@@ -185,7 +181,6 @@ class UltraExecutionEngine {
   
   async generateUltraImage(ultraPrompt, context, api, index) {
     const startTime = Date.now();
-    console.log(`🎨 Generating ULTRA image ${index + 1} with ${api.toUpperCase()}`);
     
     let result;
     
@@ -204,7 +199,6 @@ class UltraExecutionEngine {
     }
     
     const generationTime = Date.now() - startTime;
-    console.log(`✅ ULTRA image ${index + 1} completed in ${generationTime}ms`);
     
     return {
       ...result,
@@ -356,7 +350,6 @@ class UltraExecutionEngine {
 const ultraEngine = new UltraExecutionEngine();
 
 module.exports = async function handler(req, res) {
-  console.log('🚀 ULTRA GENERATE API ACTIVATED');
   
   // CORS設定
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -397,7 +390,6 @@ module.exports = async function handler(req, res) {
       }
     }
     
-    console.log(`🎯 ULTRA generation: ${count} images using ${apiToUse.toUpperCase()}`);
     
     // ULTRA実行
     const results = await ultraEngine.executeUltraGeneration(prompt, context, apiToUse, count);

@@ -22,7 +22,6 @@ export default async function handler(req, res) {
   try {
     // Extract the path from the query parameter
     const path = query?.path || url || '';
-    console.log('API Request:', { method, path, body: req.body });
 
     // Health check endpoint
     if (path === 'health' || path === '' || path === '/') {
@@ -105,7 +104,6 @@ export default async function handler(req, res) {
             
             enhancedPrompt = completion.choices[0]?.message?.content || enhancedPrompt;
           } catch (openaiError) {
-            console.log('OpenAI analysis failed, using basic enhancement:', openaiError.message);
             enhancedPrompt = `${prompt} - Professional Japanese business style, high quality, modern design`;
           }
         } else {

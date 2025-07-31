@@ -5,7 +5,6 @@ const { validatePrompt } = require('./utils/validation');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
-  console.log('Enhancing prompt with context:', context);
   
   // 日本向けの明確な指示を追加
   const baseEnhancements = [
@@ -48,20 +47,17 @@ function enhancePromptForJapan(prompt, context = {}) {
   // 業界に基づいて追加
   if (context.industry && industryEnhancements[context.industry]) {
     japaneseEnhancements.push(...industryEnhancements[context.industry]);
-    console.log(`Added industry enhancements for: ${context.industry}`);
   }
   
   // コンテンツタイプに基づいて追加
   if (context.contentType && contentTypeEnhancements[context.contentType]) {
     japaneseEnhancements.push(...contentTypeEnhancements[context.contentType]);
-    console.log(`Added content type enhancements for: ${context.contentType}`);
   }
   
   // ネガティブプロンプトを強化
   const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic';
   
   const enhancedPrompt = `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
-  console.log('Enhanced prompt length:', enhancedPrompt.length);
   
   return enhancedPrompt;
 }
@@ -86,7 +82,6 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    console.log('Generate API called:', req.body);
     const { prompt, context = {}, api: selectedApi = 'auto' } = req.body || {};
     
     // プロンプトの検証
@@ -97,14 +92,12 @@ module.exports = async function handler(req, res) {
 
     // API選択ロジック（環境変数ベース）
     let apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
-    console.log('API selection:', { selectedApi, apiToUse });
     
     if (apiToUse === 'auto') {
       if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
       else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
       else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
       else {
-        console.log('No API keys found in environment variables');
         return res.status(500).json({
           success: false,
           error: 'APIキーが設定されていません',
@@ -113,14 +106,8 @@ module.exports = async function handler(req, res) {
       }
     }
     
-    console.log('Final API to use:', apiToUse);
-    console.log('Environment check:', {
-      hasOpenAI: !!process.env.OPENAI_API_KEY,
-      hasStability: !!process.env.STABILITY_API_KEY,
-      hasReplicate: !!process.env.REPLICATE_API_TOKEN
-    });
 
-    let generatedImage, cost = 0, apiUsed = 'demo';
+    let generatedImage, cost = 0, apiUsed = '';
     const startTime = Date.now();
 
     try {
@@ -188,8 +175,8 @@ module.exports = async function handler(req, res) {
         api_used: apiUsed,
         cost: cost,
         generation_time: generationTime,
-        resolution: apiUsed.includes('demo') ? '512x512' : 'varies',
-        format: apiUsed.includes('demo') ? 'SVG (demo)' : 'PNG/JPEG',
+        resolution: 'varies',
+        format: 'PNG/JPEG',
         context: context,
         timestamp: new Date().toISOString()
       }
@@ -276,20 +263,12 @@ async function generateWithStability(prompt, apiKey, context = {}) {
 
 // Replicateで画像生成
 async function generateWithReplicate(prompt, apiToken, context = {}) {
-  console.log('Initializing Replicate with token:', apiToken ? 'Token exists' : 'No token');
-  console.log('Token details:', {
-    exists: !!apiToken,
-    length: apiToken ? apiToken.length : 0,
-    prefix: apiToken ? apiToken.substring(0, 10) + '...' : 'none',
-    type: typeof apiToken
-  });
   
   const replicate = new Replicate({
     auth: apiToken
   });
   
   try {
-    console.log('Running Replicate model with prompt:', prompt.substring(0, 100) + '...');
     
     // Replicate用のプロンプトを調整
     const replicatePrompt = prompt.replace('negative prompt:', '').substring(0, 500); // プロンプトを短縮
@@ -314,7 +293,6 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       }
     );
     
-    console.log('Replicate output:', output);
     
     // Replicateは配列またはURLを返す
     const imageUrl = Array.isArray(output) ? output[0] : output;
@@ -323,7 +301,6 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
       throw new Error('No image URL returned from Replicate');
     }
     
-    console.log('Fetching image from URL:', imageUrl);
     
     // 画像をbase64に変換
     const imageResponse = await fetch(imageUrl);

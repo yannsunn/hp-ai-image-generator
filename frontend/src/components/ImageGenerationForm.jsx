@@ -136,10 +136,6 @@ const ImageGenerationForm = () => {
             }));
           }
           
-          // 進捗ログを表示
-          if (data.progress_log) {
-            console.log('解析進捗:', data.progress_log);
-          }
         }
         setIsAnalyzingUrl(false);
         
@@ -234,8 +230,6 @@ const ImageGenerationForm = () => {
         endpoint = numberOfImages > 1 ? '/api/generate/batch' : '/api/generate';
       }
       
-      console.log(`🚀 Using ${useUltraMode ? 'ULTRA' : 'STANDARD'} generation mode`);
-      
       const requestPayload = {
         prompt: combinedPrompt,
         api: selectedApi,
@@ -253,8 +247,6 @@ const ImageGenerationForm = () => {
         },
         options: {}
       };
-      
-      console.log('Sending request with context:', requestPayload.context);
       
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -379,11 +371,9 @@ const ImageGenerationForm = () => {
       const data = await response.json();
       if (data.success) {
         // デモ画像は保存しない
-        if (!data.imageId || data.imageId.startsWith('demo-')) {
-          console.warn('デモ画像は保存されません');
+        if (!data.imageId) {
           return;
         }
-        console.log('画像が保存されました:', data.imageId);
         
         // ローカルストレージにも保存（KVが使えない場合のフォールバック）
         if (data.warning) {
