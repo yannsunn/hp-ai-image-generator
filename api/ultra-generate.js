@@ -56,7 +56,26 @@ class UltraPromptEngine {
   
   generateUltraPrompt(basePrompt, context) {
     const industry = this.industryTemplates[context.industry] || this.industryTemplates['technology'];
-    const contentType = this.contentTypeTemplates[context.contentType] || this.contentTypeTemplates['hero'];
+    
+    // 複数のコンテンツタイプをサポート（後方互換性を保持）
+    let contentTypeComponents = [];
+    if (context.contentTypes && Array.isArray(context.contentTypes)) {
+      // 新しい配列形式
+      context.contentTypes.forEach(type => {
+        if (this.contentTypeTemplates[type]) {
+          const template = this.contentTypeTemplates[type];
+          contentTypeComponents.push(template.composition, template.focus);
+        }
+      });
+    } else if (context.contentType && this.contentTypeTemplates[context.contentType]) {
+      // 後方互換性のため単一のcontentTypeもサポート
+      const template = this.contentTypeTemplates[context.contentType];
+      contentTypeComponents.push(template.composition, template.focus);
+    } else {
+      // デフォルト
+      const defaultTemplate = this.contentTypeTemplates['hero'];
+      contentTypeComponents.push(defaultTemplate.composition, defaultTemplate.focus);
+    }
     
     // ULTRA品質指定
     const qualityModifiers = [
@@ -72,8 +91,7 @@ class UltraPromptEngine {
     const components = [
       basePrompt,
       industry.core,
-      contentType.composition,
-      contentType.focus,
+      ...contentTypeComponents,
       industry.mood + ' atmosphere',
       industry.lighting,
       ...this.japaneseBusinessOptimization,

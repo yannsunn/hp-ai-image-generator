@@ -11,6 +11,7 @@ const ImageGenerationForm = () => {
     industry: '',
     contentType: ''
   });
+  const [selectedContentTypes, setSelectedContentTypes] = useState([]); // 複数選択用
   const [selectedApi, setSelectedApi] = useState('auto');
   const [numberOfImages, setNumberOfImages] = useState(1); // 生成枚数
   const [isGenerating, setIsGenerating] = useState(false);
@@ -158,7 +159,7 @@ const ImageGenerationForm = () => {
     
     // 業界・コンテンツタイプ指定評価
     if (currentContext.industry) qualityScore += 0.15;
-    if (currentContext.contentType) qualityScore += 0.15;
+    if (currentContext.contentType || selectedContentTypes.length > 0) qualityScore += 0.15;
     
     // API適合性評価
     const apiScores = {
@@ -183,7 +184,7 @@ const ImageGenerationForm = () => {
     if (!currentContext.industry) {
       prediction.recommendations.push('業界を選択すると品質が向上します');
     }
-    if (!currentContext.contentType) {
+    if (!currentContext.contentType && selectedContentTypes.length === 0) {
       prediction.recommendations.push('コンテンツタイプを選択してください');
     }
     
@@ -236,7 +237,8 @@ const ImageGenerationForm = () => {
         count: numberOfImages,
         context: {
           industry: context.industry,
-          contentType: context.contentType,
+          contentType: selectedContentTypes.length > 0 ? selectedContentTypes.join(',') : context.contentType,
+          contentTypes: selectedContentTypes, // 複数選択の配列も送信
           source_url: inputMode === 'url' ? url : undefined,
           locale: 'ja-JP', // 日本向け設定
           style_preferences: {
@@ -521,22 +523,56 @@ const ImageGenerationForm = () => {
 
   const industries = [
     { value: '', label: '業界を選択' },
-    { value: 'technology', label: 'テクノロジー' },
-    { value: 'healthcare', label: 'ヘルスケア' },
-    { value: 'education', label: '教育' },
-    { value: 'restaurant', label: '飲食' },
-    { value: 'fashion', label: 'ファッション' },
-    { value: 'finance', label: '金融' }
+    { value: 'technology', label: 'IT・テクノロジー' },
+    { value: 'healthcare', label: '医療・ヘルスケア' },
+    { value: 'education', label: '教育・学習' },
+    { value: 'restaurant', label: '飲食・グルメ' },
+    { value: 'fashion', label: 'ファッション・アパレル' },
+    { value: 'finance', label: '金融・保険' },
+    { value: 'realestate', label: '不動産・建設' },
+    { value: 'retail', label: '小売・流通' },
+    { value: 'manufacturing', label: '製造業' },
+    { value: 'automotive', label: '自動車・運輸' },
+    { value: 'beauty', label: '美容・コスメ' },
+    { value: 'sports', label: 'スポーツ・フィットネス' },
+    { value: 'entertainment', label: 'エンターテインメント' },
+    { value: 'travel', label: '旅行・観光' },
+    { value: 'hospitality', label: 'ホテル・宿泊' },
+    { value: 'legal', label: '法務・士業' },
+    { value: 'consulting', label: 'コンサルティング' },
+    { value: 'agriculture', label: '農業・食品' },
+    { value: 'energy', label: 'エネルギー・環境' },
+    { value: 'nonprofit', label: 'NPO・非営利' },
+    { value: 'government', label: '政府・公共機関' },
+    { value: 'media', label: 'メディア・出版' },
+    { value: 'telecommunications', label: '通信・ネットワーク' },
+    { value: 'logistics', label: '物流・配送' },
+    { value: 'ecommerce', label: 'EC・オンライン販売' },
+    { value: 'other', label: 'その他' }
   ];
 
   const contentTypes = [
-    { value: '', label: 'コンテンツタイプを選択' },
-    { value: 'hero', label: 'ヒーローイメージ' },
-    { value: 'about', label: '会社紹介' },
-    { value: 'service', label: 'サービス紹介' },
-    { value: 'product', label: '商品紹介' },
-    { value: 'team', label: 'チーム紹介' },
-    { value: 'testimonial', label: 'お客様の声' }
+    { value: '', label: 'コンテンツタイプを選択（複数選択可）' },
+    { value: 'hero', label: 'ヒーローイメージ', description: 'トップページのメインビジュアル' },
+    { value: 'about', label: '会社紹介', description: '企業理念やビジョンを伝える' },
+    { value: 'service', label: 'サービス紹介', description: '提供サービスの特徴' },
+    { value: 'product', label: '商品紹介', description: '製品の魅力を訴求' },
+    { value: 'team', label: 'チーム紹介', description: 'スタッフや組織の紹介' },
+    { value: 'testimonial', label: 'お客様の声', description: '顧客の成功事例' },
+    { value: 'feature', label: '機能紹介', description: '特定機能の説明' },
+    { value: 'benefit', label: 'ベネフィット', description: '顧客の得られる価値' },
+    { value: 'process', label: 'プロセス説明', description: 'サービスの流れ' },
+    { value: 'gallery', label: 'ギャラリー', description: '作品集や事例集' },
+    { value: 'contact', label: 'コンタクト', description: 'お問い合わせセクション' },
+    { value: 'cta', label: 'CTA', description: 'アクションを促す' },
+    { value: 'news', label: 'ニュース', description: '最新情報やお知らせ' },
+    { value: 'event', label: 'イベント', description: 'セミナーや展示会' },
+    { value: 'career', label: '採用情報', description: '求人・キャリア' },
+    { value: 'background', label: '背景画像', description: 'セクション背景用' },
+    { value: 'icon', label: 'アイコン', description: 'サービスや機能のアイコン' },
+    { value: 'banner', label: 'バナー', description: 'キャンペーンや広告' },
+    { value: 'infographic', label: 'インフォグラフィック', description: 'データの視覚化' },
+    { value: 'other', label: 'その他', description: '上記以外の用途' }
   ];
 
   return (
@@ -678,20 +714,53 @@ const ImageGenerationForm = () => {
                 </select>
               </div>
 
-              {/* コンテンツタイプ選択 */}
+              {/* コンテンツタイプ選択（複数選択） */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  コンテンツタイプ
+                  コンテンツタイプ（複数選択可）
                 </label>
-                <select
-                  value={context.contentType}
-                  onChange={(e) => setContext({...context, contentType: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  {contentTypes.map(type => (
-                    <option key={type.value} value={type.value}>{type.label}</option>
+                <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                  {contentTypes.slice(1).map(type => (
+                    <label key={type.value} className="flex items-start cursor-pointer hover:bg-gray-50 p-2 rounded">
+                      <input
+                        type="checkbox"
+                        checked={selectedContentTypes.includes(type.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedContentTypes([...selectedContentTypes, type.value]);
+                          } else {
+                            setSelectedContentTypes(selectedContentTypes.filter(t => t !== type.value));
+                          }
+                        }}
+                        className="mr-3 mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{type.label}</div>
+                        {type.description && (
+                          <div className="text-sm text-gray-500">{type.description}</div>
+                        )}
+                      </div>
+                    </label>
                   ))}
-                </select>
+                </div>
+                {selectedContentTypes.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedContentTypes.map(type => {
+                      const contentType = contentTypes.find(ct => ct.value === type);
+                      return (
+                        <span key={type} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800">
+                          {contentType?.label}
+                          <button
+                            onClick={() => setSelectedContentTypes(selectedContentTypes.filter(t => t !== type))}
+                            className="ml-2 text-purple-600 hover:text-purple-900"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
 

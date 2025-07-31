@@ -50,7 +50,15 @@ function enhancePromptForJapan(prompt, context = {}) {
   }
   
   // コンテンツタイプに基づいて追加
-  if (context.contentType && contentTypeEnhancements[context.contentType]) {
+  // 配列形式の新しいcontentTypesをサポート（後方互換性を保持）
+  if (context.contentTypes && Array.isArray(context.contentTypes)) {
+    context.contentTypes.forEach(type => {
+      if (contentTypeEnhancements[type]) {
+        japaneseEnhancements.push(...contentTypeEnhancements[type]);
+      }
+    });
+  } else if (context.contentType && contentTypeEnhancements[context.contentType]) {
+    // 後方互換性のため単一のcontentTypeもサポート
     japaneseEnhancements.push(...contentTypeEnhancements[context.contentType]);
   }
   
