@@ -1,8 +1,6 @@
-# AI画像生成システム - ホームページ制作用
+# AI画像生成システム（HP制作用）
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/yannsunn/hp-ai-image-generator)
-
-ホームページ制作に特化したAI画像生成・編集システムです。複数のAI APIを統合し、自然言語による画像編集機能を提供します。
+プロフェッショナルなホームページ用画像を生成するAIシステムです。
 
 ## 主な機能
 
@@ -23,55 +21,45 @@
 - **コンテンツタイプ認識**: ヒーロー画像、商品画像など
 - **プロンプト拡張**: 自動的な品質向上
 
-## セットアップ
+## 必要な環境設定
 
-### 1. リポジトリのクローン
+1. `.env.example`を`.env`にコピー
+2. 以下のAPIキーを設定：
+
+### 必須APIキー
+- `OPENAI_API_KEY`: OpenAI APIキー（プロンプト最適化・画像生成）
+- `REPLICATE_API_TOKEN`: Replicate APIトークン（高品質画像生成）
+
+### オプション設定
+- Vercel KV Storage（画像履歴保存用）
+  - `KV_URL`
+  - `KV_REST_API_URL`
+  - `KV_REST_API_TOKEN`
+  - `KV_REST_API_READ_ONLY_TOKEN`
+
+## インストール
+
 ```bash
-git clone <repository-url>
-cd HP用画像生成システム
-```
+# APIディレクトリ
+cd api
+npm install
 
-### 2. 環境変数の設定
-```bash
-cp .env.example .env
-```
-
-以下のAPIキーを`.env`ファイルに設定：
-- `OPENAI_API_KEY`: OpenAI APIキー
-- `STABILITY_API_KEY`: Stability AI APIキー
-- `REPLICATE_API_TOKEN`: Replicate APIトークン
-
-### 3. 依存関係のインストール
-
-#### バックエンド
-```bash
-pip install -r requirements.txt
-```
-
-#### フロントエンド
-```bash
+# フロントエンド
 cd frontend
 npm install
-```
-
-### 4. ローカル実行
-
-#### 開発モード
-```bash
-# バックエンド
-python src/main.py
-
-# フロントエンド（別ターミナル）
-cd frontend
-npm run dev
-```
-
-#### 本番ビルド
-```bash
-cd frontend
 npm run build
-cd ..
-python src/main.py
+```
+
+## 起動方法
+
+```bash
+# 開発環境
+cd api
+npm run dev
+
+# 本番環境
+cd api
+npm start
 ```
 
 ## Vercelへのデプロイ
@@ -100,10 +88,10 @@ vercel --prod
 ## 技術スタック
 
 ### バックエンド
-- Flask (Python)
+- Node.js / Express
 - OpenAI SDK
-- Pillow (画像処理)
-- asyncio/aiohttp (非同期処理)
+- Replicate SDK
+- Cheerio (サイト解析)
 
 ### フロントエンド
 - React
@@ -111,21 +99,19 @@ vercel --prod
 - Vite
 - Lucide Icons
 
-## API仕様
+## API エンドポイント
 
-### 画像生成
-- `POST /api/generate` - 単一画像生成
-- `POST /api/generate/batch` - バッチ画像生成
-- `GET /api/apis/available` - 利用可能なAPI一覧
+- `POST /api/generate`: 単一画像生成
+- `POST /api/generate/batch`: バッチ画像生成
+- `POST /api/analyze`: プロンプト解析・最適化
+- `POST /api/analyze-url`: URL解析
+- `POST /api/edit/image`: 画像編集
 
-### 画像編集
-- `POST /api/edit/image` - 画像編集
-- `POST /api/edit/batch` - バッチ編集
-- `GET /api/edit/presets` - プリセット一覧
+## 本番環境での注意事項
 
-### その他
-- `POST /api/analyze` - プロンプト解析
-- `GET /api/health` - ヘルスチェック
+- すべてのAPIキーが正しく設定されていることを確認
+- レート制限の設定を環境に合わせて調整
+- CORS設定を本番ドメインに限定することを推奨
 
 ## ライセンス
 

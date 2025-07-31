@@ -48,19 +48,31 @@ export default function handler(req, res) {
 
       case 'openai_dalle_edit':
         // OpenAI DALL-E 編集（デモ）
-        editedImage = generateDemoEditedImage('DALL-E編集済み');
+        if (!api_keys.openai) {
+          return res.status(400).json({ error: 'OpenAI APIキーが必要です' });
+        }
+        // TODO: 実際のDALL-E編集実装
+        return res.status(501).json({ error: 'DALL-E編集は実装準備中です' });
         cost = 0.02;
         break;
 
       case 'stability_edit':
         // Stability AI 編集（デモ）
-        editedImage = generateDemoEditedImage('Stability AI編集済み');
+        if (!api_keys.stability) {
+          return res.status(400).json({ error: 'Stability AI APIキーが必要です' });
+        }
+        // TODO: 実際のStability AI編集実装
+        return res.status(501).json({ error: 'Stability AI編集は実装準備中です' });
         cost = 0.01;
         break;
 
       case 'replicate_edit':
         // Replicate 編集（デモ）
-        editedImage = generateDemoEditedImage('Replicate編集済み');
+        if (!api_keys.replicate) {
+          return res.status(400).json({ error: 'Replicate APIキーが必要です' });
+        }
+        // TODO: 実際のReplicate編集実装
+        return res.status(501).json({ error: 'Replicate編集は実装準備中です' });
         cost = 0.005;
         break;
 
@@ -116,30 +128,4 @@ export default function handler(req, res) {
   }
 }
 
-// デモ用の編集済み画像生成
-function generateDemoEditedImage(editType) {
-  const svg = `
-    <svg width="400" height="300" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      <rect width="400" height="300" fill="url(#grad)"/>
-      <circle cx="200" cy="120" r="40" fill="#2196f3" opacity="0.7"/>
-      <rect x="150" y="180" width="100" height="60" rx="10" fill="#1976d2" opacity="0.8"/>
-      <text x="200" y="200" text-anchor="middle" font-family="Arial" font-size="12" fill="#0d47a1">
-        ${editType}
-      </text>
-      <text x="200" y="220" text-anchor="middle" font-family="Arial" font-size="10" fill="#1565c0">
-        処理完了
-      </text>
-      <text x="200" y="280" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">
-        ${new Date().toLocaleTimeString('ja-JP')}
-      </text>
-    </svg>
-  `;
-  
-  return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-}
+// デモ編集関数は削除（本番環境）

@@ -76,7 +76,7 @@ export default async function handler(req, res) {
         if (process.env.REPLICATE_API_TOKEN) analysisData.recommended_apis.push('replicate');
         
         if (analysisData.recommended_apis.length === 0) {
-          analysisData.recommended_apis.push('demo');
+          return res.status(500).json({ error: 'APIキーが設定されていません。.envファイルを確認してください。' });
         }
 
         // OpenAIでプロンプト解析を実行（APIキーがある場合）
@@ -165,7 +165,9 @@ export default async function handler(req, res) {
         if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
         else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
         else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
-        else apiToUse = 'demo';
+        else {
+          return res.status(500).json({ error: 'APIキーが設定されていません。.envファイルを確認してください。' });
+        }
       }
 
       const images = [];
@@ -200,10 +202,7 @@ export default async function handler(req, res) {
               break;
 
             default:
-              result = {
-                image: generateDemoImage(prompt, i + 1),
-                cost: 0
-              };
+              return res.status(500).json({ error: '無効なAPIが指定されました' });
           }
 
           images.push({
@@ -212,7 +211,7 @@ export default async function handler(req, res) {
             metadata: {
               original_prompt: prompt,
               enhanced_prompt: prompt + ' - Professional Japanese style',
-              api_used: apiToUse === 'demo' ? 'demo' : apiToUse,
+              api_used: apiToUse,
               cost: result.cost,
               analysis: {
                 content_type: 'general',
@@ -232,18 +231,7 @@ export default async function handler(req, res) {
             fallback_used: true
           });
           
-          // エラー時はデモにフォールバック
-          images.push({
-            index: i,
-            image: generateDemoImage(prompt, i + 1),
-            metadata: {
-              original_prompt: prompt,
-              enhanced_prompt: prompt + ' - Professional Japanese style (fallback)',
-              api_used: 'demo (fallback)',
-              cost: 0,
-              error: error.message
-            }
-          });
+          // エラー時はエラー情報のみ追加
         }
       }
 
@@ -396,30 +384,4 @@ async function generateWithReplicate(prompt, apiToken) {
   }
 }
 
-// デモ画像生成
-function generateDemoImage(prompt, index = 1) {
-  const svg = `<svg width="400" height="400" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="grad${index}" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" style="stop-color:#e3f2fd;stop-opacity:1" />
-          <stop offset="100%" style="stop-color:#bbdefb;stop-opacity:1" />
-        </linearGradient>
-      </defs>
-      <rect width="400" height="400" fill="url(#grad${index})"/>
-      <circle cx="200" cy="150" r="40" fill="#2196f3" opacity="0.7"/>
-      <rect x="150" y="220" width="100" height="60" rx="10" fill="#1976d2" opacity="0.8"/>
-      <text x="200" y="240" text-anchor="middle" font-family="Arial" font-size="12" fill="#0d47a1">
-        デモ画像 ${index}
-      </text>
-      <text x="200" y="260" text-anchor="middle" font-family="Arial" font-size="8" fill="#1565c0">
-        ${prompt.substring(0, 20)}${prompt.length > 20 ? '...' : ''}
-      </text>
-      <text x="200" y="350" text-anchor="middle" font-family="Arial" font-size="8" fill="#666">
-        ${new Date().toLocaleTimeString('ja-JP')}
-      </text>
-    </svg>`;
-  
-  // URLエンコードでBase64を回避
-  const encodedSvg = encodeURIComponent(svg);
-  return `data:image/svg+xml;charset=utf-8,${encodedSvg}`;
-}
+// デモ画像生成関数は削除（本番環境）
