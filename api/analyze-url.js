@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
+const logger = require('./utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
 // 業界判定用のキーワード辞書
 const industryKeywords = {
@@ -240,7 +242,7 @@ async function analyzeUrl(url) {
 
     } catch (fetchError) {
       clearTimeout(timeout);
-      console.error('Fetch error:', fetchError);
+      logger.error('Fetch error:', fetchError);
       
       if (fetchError.name === 'AbortError') {
         throw new Error('Request timeout - the website took too long to respond');
@@ -249,7 +251,7 @@ async function analyzeUrl(url) {
     }
 
   } catch (error) {
-    console.error('URL analysis error:', error);
+    logger.error('URL analysis error:', error);
     
     // エラーの種類に応じた適切なレスポンス
     if (error.message.includes('Invalid URL')) {
@@ -284,13 +286,7 @@ async function analyzeUrl(url) {
 module.exports = async function handler(req, res) {
   
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -298,34 +294,29 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendErrorResponse(res, 405, 'Method not allowed');
   }
 
   try {
     const { url } = req.body;
     
     if (!url) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'URLが指定されていません',
-        details: 'URLを入力してください' 
-      });
+      return sendErrorResponse(res, 400, 'URLが指定されていません。URLを入力してください');
     }
 
     const result = await analyzeUrl(url);
     
-    return res.status(result.success ? 200 : 400).json(result);
+    if (result.success) {
+      return sendSuccessResponse(res, result);
+    } else {
+      return sendErrorResponse(res, 400, result.error || '解析エラー');
+    }
 
   } catch (error) {
-    console.error('API handler error:', error);
+    logger.error('API handler error:', error);
     
     // 確実にJSONレスポンスを返す
     res.setHeader('Content-Type', 'application/json');
-    return res.status(500).send(JSON.stringify({
-      success: false,
-      error: 'サーバーエラー',
-      details: 'サーバー側でエラーが発生しました。しばらくしてから再度お試しください。',
-      message: error.message || 'Unknown error occurred'
-    }));
+    return sendErrorResponse(res, 500, `サーバーエラー: ${error.message || 'サーバー側でエラーが発生しました。しばらくしてから再度お試しください。'}`);
   }
 }

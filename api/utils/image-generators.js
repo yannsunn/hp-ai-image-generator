@@ -1,6 +1,8 @@
 const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
+const config = require('../config');
+const logger = require('./logger');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
@@ -91,10 +93,10 @@ async function generateWithOpenAI(prompt, apiKey, context = {}) {
     
     return {
       image: base64Image,
-      cost: 0.04 // DALL-E 3 standardの料金
+      cost: config.pricing.openai['dall-e-3'].standard
     };
   } catch (error) {
-    console.error('OpenAI API Error:', error);
+    logger.error('OpenAI API Error:', error);
     throw error;
   }
 }
@@ -131,10 +133,10 @@ async function generateWithStability(prompt, apiKey, context = {}) {
     
     return {
       image: base64Image,
-      cost: 0.018 // Stability AI SDXLの料金
+      cost: config.pricing.stability.sdxl
     };
   } catch (error) {
-    console.error('Stability AI Error:', error);
+    logger.error('Stability AI Error:', error);
     throw error;
   }
 }
@@ -192,10 +194,10 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
     
     return {
       image: base64Image,
-      cost: 0.005 // Replicate SDXLの料金
+      cost: config.pricing.replicate.sdxl
     };
   } catch (error) {
-    console.error('Replicate API Error:', error);
+    logger.error('Replicate API Error:', error);
     
     // クレジット不足エラーを分かりやすく処理
     if (error.message && error.message.includes('402 Payment Required')) {

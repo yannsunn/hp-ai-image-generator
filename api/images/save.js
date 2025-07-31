@@ -1,15 +1,11 @@
 const { kv } = require('@vercel/kv');
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
 
 module.exports = async function handler(req, res) {
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -21,7 +17,7 @@ module.exports = async function handler(req, res) {
       const { image, metadata } = req.body;
       
       if (!image || !metadata) {
-        return res.status(400).json({ error: 'Image and metadata are required' });
+        return sendErrorResponse(res, 400, 'Image and metadata are required');
       }
 
       const imageId = uuidv4();
@@ -45,32 +41,27 @@ module.exports = async function handler(req, res) {
       await kv.sadd(`user:${userId}:images`, imageId);
       
       
-      return res.status(200).json({
-        success: true,
+      return sendSuccessResponse(res, {
         imageId: imageId,
         message: '画像が保存されました'
       });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendErrorResponse(res, 405, 'Method not allowed');
     
   } catch (error) {
-    console.error('Save image error:', error);
+    logger.error('Save image error:', error);
     
     // Vercel KVが設定されていない場合のフォールバック
     if (error.message && error.message.includes('KV_REST_API_URL')) {
       // KVが設定されていない場合は成功として扱う（ローカルストレージで対応）
-      return res.status(200).json({
-        success: true,
+      return sendSuccessResponse(res, {
         imageId: 'local-' + Date.now(),
         message: '画像がローカルに保存されました',
         warning: 'Vercel KVが設定されていないため、ローカルストレージを使用しています'
       });
     }
     
-    return res.status(500).json({
-      error: 'サーバーエラー',
-      message: error.message || '画像の保存に失敗しました'
-    });
+    return sendErrorResponse(res, 500, error.message || '画像の保存に失敗しました');
   }
 };

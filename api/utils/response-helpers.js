@@ -22,15 +22,14 @@ function sendSuccessResponse(res, data) {
   });
 }
 
+const config = require('../config');
+
 // CORSヘッダーを設定
 function setCorsHeaders(res) {
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  res.setHeader('Access-Control-Allow-Credentials', config.cors.credentials);
+  res.setHeader('Access-Control-Allow-Origin', config.cors.origin);
+  res.setHeader('Access-Control-Allow-Methods', config.cors.methods.join(','));
+  res.setHeader('Access-Control-Allow-Headers', config.cors.headers.join(', '));
 }
 
 module.exports = {

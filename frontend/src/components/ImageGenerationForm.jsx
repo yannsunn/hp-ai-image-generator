@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
 import ImageGallery from './ImageGallery';
+import logger from '../utils/logger';
 
 const ImageGenerationForm = () => {
   const [prompt, setPrompt] = useState('');
@@ -44,7 +45,7 @@ const ImageGenerationForm = () => {
       const data = await response.json();
       setAvailableApis(data.available || []);
     } catch (err) {
-      console.error('Failed to fetch available APIs:', err);
+      logger.error('Failed to fetch available APIs:', err);
     }
   };
 
@@ -82,7 +83,7 @@ const ImageGenerationForm = () => {
         setPromptAnalysis(data.analysis);
       }
     } catch (err) {
-      console.error('Prompt analysis failed:', err);
+      logger.error('Prompt analysis failed:', err);
     }
   };
 
@@ -188,7 +189,7 @@ const ImageGenerationForm = () => {
         data = await response.json();
       } catch (parseError) {
         // JSONパースエラーの場合
-        console.error('API Response Parse Error:', parseError);
+        logger.error('API Response Parse Error:', parseError);
         
         // body stream already read エラーの場合
         if (parseError.message.includes('body stream already read')) {
@@ -200,7 +201,7 @@ const ImageGenerationForm = () => {
 
       if (!response.ok) {
         // エラーレスポンスの詳細を表示
-        console.error('API Error Details:', data);
+        logger.error('API Error Details:', data);
         throw new Error(data.details || data.error || 'Generation failed');
       }
 
@@ -298,7 +299,7 @@ const ImageGenerationForm = () => {
             }
             localStorage.setItem('imageHistory', JSON.stringify(localHistory));
           } catch (storageError) {
-            console.warn('LocalStorage保存エラー:', storageError);
+            logger.warn('LocalStorage保存エラー:', storageError);
             // 容量エラーの場合は履歴をクリア
             if (storageError.name === 'QuotaExceededError') {
               localStorage.removeItem('imageHistory');
@@ -307,7 +308,7 @@ const ImageGenerationForm = () => {
         }
       }
     } catch (err) {
-      console.error('画像保存エラー:', err);
+      logger.error('画像保存エラー:', err);
       
       // エラー時もローカルストレージに保存（メタデータのみ）
       try {
@@ -328,7 +329,7 @@ const ImageGenerationForm = () => {
         }
         localStorage.setItem('imageHistory', JSON.stringify(localHistory));
       } catch (storageError) {
-        console.warn('LocalStorage保存エラー:', storageError);
+        logger.warn('LocalStorage保存エラー:', storageError);
         if (storageError.name === 'QuotaExceededError') {
           localStorage.removeItem('imageHistory');
         }
@@ -357,7 +358,7 @@ const ImageGenerationForm = () => {
         }
       }
     } catch (err) {
-      console.error('履歴取得エラー:', err);
+      logger.error('履歴取得エラー:', err);
       // エラー時はローカルストレージから取得
       const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
       setImageHistory(localHistory);

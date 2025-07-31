@@ -7,17 +7,13 @@ const {
   generateWithReplicate,
   getResolution
 } = require('./utils/image-generators');
+const logger = require('./utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
 
 module.exports = async function handler(req, res) {
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -25,7 +21,7 @@ module.exports = async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendErrorResponse(res, 405, 'Method not allowed');
   }
 
   try {
@@ -34,7 +30,7 @@ module.exports = async function handler(req, res) {
     // プロンプトの検証
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.valid) {
-      return res.status(400).json({ error: promptValidation.error });
+      return sendErrorResponse(res, 400, promptValidation.error);
     }
     
     // 日本語の追加指示を英語に変換
@@ -54,11 +50,7 @@ module.exports = async function handler(req, res) {
       else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
       else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
       else {
-        return res.status(500).json({
-          success: false,
-          error: 'APIキーが設定されていません',
-          message: 'Vercelの環境変数にAPIキーを設定してください'
-        });
+        return sendErrorResponse(res, 500, 'APIキーが設定されていません。Vercelの環境変数にAPIキーを設定してください');
       }
     }
     
@@ -100,27 +92,17 @@ module.exports = async function handler(req, res) {
 
         default:
           // 無効なAPIが選択された場合
-          return res.status(400).json({
-            success: false,
-            error: '無効なAPIが選択されました',
-            available_apis: ['openai', 'stability', 'replicate']
-          });
+          return sendErrorResponse(res, 400, '無効なAPIが選択されました。利用可能なAPI: openai, stability, replicate');
       }
     } catch (apiError) {
-      console.error(`API Error (${apiToUse}):`, apiError);
+      logger.error(`API Error (${apiToUse}):`, apiError);
       // エラーをそのまま投げる - デモ画像は使わない
-      return res.status(500).json({
-        success: false,
-        error: '画像生成に失敗しました',
-        details: apiError.message,
-        api_attempted: apiToUse
-      });
+      return sendErrorResponse(res, 500, `画像生成に失敗しました (${apiToUse}): ${apiError.message}`);
     }
 
     const generationTime = Date.now() - startTime;
 
-    return res.status(200).json({
-      success: true,
+    return sendSuccessResponse(res, {
       image: generatedImage,
       metadata: {
         original_prompt: prompt,
@@ -136,11 +118,8 @@ module.exports = async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Generate API Error:', error);
-    return res.status(500).json({
-      error: 'サーバーエラー',
-      message: error.message
-    });
+    logger.error('Generate API Error:', error);
+    return sendErrorResponse(res, 500, `サーバーエラー: ${error.message}`);
   }
 }
 

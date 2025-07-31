@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const { URL } = require('url');
+const logger = require('./utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
 // 既存のキーワード辞書をインポート
 const { industryKeywords, contentTypePatterns } = require('./utils/keywords');
@@ -90,7 +92,7 @@ async function analyzePage(url, timeout = 10000) {
     
   } catch (error) {
     clearTimeout(timer);
-    console.error(`Failed to analyze ${url}:`, error.message);
+    logger.error(`Failed to analyze ${url}:`, error.message);
     return null;
   }
 }
@@ -329,10 +331,7 @@ function generateDetailedPrompt(industry, themes, visualStyle, topPageData) {
 module.exports = async function handler(req, res) {
   
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  setCorsHeaders(res);
   
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -346,36 +345,24 @@ module.exports = async function handler(req, res) {
   try {
     
     if (!url) {
-      return res.status(400).json({ 
-        success: false,
-        error: 'URLが指定されていません'
-      });
+      return sendErrorResponse(res, 400, 'URLが指定されていません');
     }
     
     // 詳細解析の場合
     if (detailed) {
       const result = await analyzeSite(url);
       
-      return res.status(200).json({
-        success: true,
-        ...result
-      });
+      return sendSuccessResponse(res, result);
     } else {
       // 簡敩解析（既存の処理）
       const pageData = await analyzePage(url);
       const analysis = analyzeSiteData([pageData]);
       
-      return res.status(200).json({
-        success: true,
-        ...analysis
-      });
+      return sendSuccessResponse(res, analysis);
     }
     
   } catch (error) {
-    console.error('API handler error:', error);
-    return res.status(500).json({
-      success: false,
-      error: error.message || '解析エラー'
-    });
+    logger.error('API handler error:', error);
+    return sendErrorResponse(res, 500, error.message || '解析エラー');
   }
 };

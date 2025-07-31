@@ -7,18 +7,14 @@ const {
   generateWithReplicate,
   getResolution
 } = require('../utils/image-generators');
+const logger = require('../utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
 
 
 module.exports = async function handler(req, res) {
   
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -38,7 +34,7 @@ module.exports = async function handler(req, res) {
     // プロンプトの検証
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.valid) {
-      return res.status(400).json({ error: promptValidation.error });
+      return sendErrorResponse(res, 400, promptValidation.error);
     }
     
     // 日本語の追加指示を英語に変換
@@ -51,7 +47,7 @@ module.exports = async function handler(req, res) {
     }
 
     if (count > 8) {
-      return res.status(400).json({ error: '生成枚数は8枚までです' });
+      return sendErrorResponse(res, 400, '生成枚数は8枚までです');
     }
 
     // API選択ロジック（環境変数ベース）
@@ -65,11 +61,7 @@ module.exports = async function handler(req, res) {
     
     if (apiToUse === 'auto') {
       if (availableApis.length === 0) {
-        return res.status(500).json({
-          success: false,
-          error: 'APIキーが設定されていません',
-          message: 'Vercelの環境変数にAPIキーを設定してください'
-        });
+        return sendErrorResponse(res, 500, 'APIキーが設定されていません。Vercelの環境変数にAPIキーを設定してください');
       }
       // 優先順位: OpenAI > Stability > Replicate
       apiToUse = availableApis[0];
@@ -111,7 +103,7 @@ module.exports = async function handler(req, res) {
         });
         totalCost += result.value.metadata.cost;
       } else {
-        console.error(`Image ${index} generation failed:`, {
+        logger.error(`Image ${index} generation failed:`, {
           reason: result.reason,
           message: result.reason?.message,
           stack: result.reason?.stack,
@@ -130,19 +122,13 @@ module.exports = async function handler(req, res) {
     
     // エラーがある場合は失敗として処理
     if (errors.length > 0 && images.length === 0) {
-      return res.status(500).json({
-        success: false,
-        error: 'すべての画像生成に失敗しました',
-        errors: errors,
-        details: errors.map(e => e.details).join(', ')
-      });
+      return sendErrorResponse(res, 500, `すべての画像生成に失敗しました: ${errors.map(e => e.details).join(', ')}`);
     }
     
     // Content-Type を明示的に設定
     res.setHeader('Content-Type', 'application/json');
     
-    return res.status(200).json({
-      success: images.length > 0,
+    return sendSuccessResponse(res, {
       images,
       errors,
       total_cost: totalCost,
@@ -157,34 +143,21 @@ module.exports = async function handler(req, res) {
   }
 
   res.setHeader('Content-Type', 'application/json');
-  return res.status(405).json({ error: 'Method not allowed' });
+  return sendErrorResponse(res, 405, 'Method not allowed');
   
   } catch (error) {
-    console.error('Batch generate API error:', error);
-    console.error('Error stack:', error.stack);
+    logger.error('Batch generate API error:', error);
+    logger.error('Error stack:', error.stack);
     
     // 確実にJSONレスポンスを返す
     res.setHeader('Content-Type', 'application/json');
     
     // タイムアウトエラーの場合
     if (error.name === 'TimeoutError' || error.message.includes('timeout')) {
-      return res.status(504).json({
-        success: false,
-        error: 'タイムアウトエラー',
-        details: '処理時間が長すぎます。生成枚数を減らすか、単一生成をお試しください。',
-        suggestion: '生成枚数を1-2枚に減らしてください',
-        apiUsed: apiToUse || 'unknown'
-      });
+      return sendErrorResponse(res, 504, 'タイムアウトエラー: 処理時間が長すぎます。生成枚数を減らすか、単一生成をお試しください。');
     }
     
-    return res.status(500).json({
-      success: false,
-      error: 'サーバーエラー',
-      details: error.message || 'バッチ画像生成中にエラーが発生しました。',
-      message: error.message || 'Unknown error occurred',
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
-      apiUsed: apiToUse || 'unknown'
-    });
+    return sendErrorResponse(res, 500, `サーバーエラー: ${error.message || 'バッチ画像生成中にエラーが発生しました。'}`);
   }
 }
 
@@ -252,7 +225,7 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
         }
       };
     } catch (error) {
-      console.error(`Generation error for image ${index} with ${currentApi}:`, error);
+      logger.error(`Generation error for image ${index} with ${currentApi}:`, error);
       lastError = error;
       
       // クレジット不足エラーの場合は、他のAPIを試す
@@ -266,7 +239,7 @@ async function generateSingleImage(prompt, apiToUse, context, index, availableAp
   }
   
   // すべてのAPIが失敗した場合
-  console.error(`All APIs failed for image ${index}:`, triedApis);
+  logger.error(`All APIs failed for image ${index}:`, triedApis);
   throw new Error(`すべてのAPIで生成に失敗しました (${triedApis.join(', ')}): ${lastError?.message || 'Unknown error'}`);
 }
 

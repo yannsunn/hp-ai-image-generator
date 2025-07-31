@@ -1,18 +1,14 @@
 import OpenAI from 'openai';
 import Replicate from 'replicate';
 import fetch from 'node-fetch';
+const logger = require('./utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
 export default async function handler(req, res) {
   const { method, url, query } = req;
   
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (method === 'OPTIONS') {
     res.status(200).end();
@@ -25,7 +21,7 @@ export default async function handler(req, res) {
 
     // Health check endpoint
     if (path === 'health' || path === '' || path === '/') {
-      return res.status(200).json({
+      return sendSuccessResponse(res, {
         status: 'healthy',
         message: 'API is running',
         endpoints: ['/api/health', '/api/apis/available', '/api/analyze']
@@ -40,7 +36,7 @@ export default async function handler(req, res) {
       if (process.env.STABILITY_API_KEY) available.push('stability');
       if (process.env.REPLICATE_API_TOKEN) available.push('replicate');
       
-      return res.status(200).json({
+      return sendSuccessResponse(res, {
         available,
         count: available.length
       });
@@ -51,7 +47,7 @@ export default async function handler(req, res) {
       const { prompt, context = {} } = req.body || {};
       
       if (!prompt) {
-        return res.status(400).json({ error: 'Prompt is required for analysis' });
+        return sendErrorResponse(res, 400, 'Prompt is required for analysis');
       }
 
       try {
@@ -75,7 +71,7 @@ export default async function handler(req, res) {
         if (process.env.REPLICATE_API_TOKEN) analysisData.recommended_apis.push('replicate');
         
         if (analysisData.recommended_apis.length === 0) {
-          return res.status(500).json({ error: 'APIキーが設定されていません。.envファイルを確認してください。' });
+          return sendErrorResponse(res, 500, 'APIキーが設定されていません。.envファイルを確認してください。');
         }
 
         // OpenAIでプロンプト解析を実行（APIキーがある場合）
@@ -113,59 +109,36 @@ export default async function handler(req, res) {
 
         analysisData.enhanced_prompt = enhancedPrompt;
 
-        return res.status(200).json({
-          success: true,
+        return sendSuccessResponse(res, {
           analysis: analysisData
         });
       } catch (error) {
-        console.error('Analysis error:', error);
-        return res.status(500).json({
-          error: '解析エラー',
-          message: error.message
-        });
+        logger.error('Analysis error:', error);
+        return sendErrorResponse(res, 500, `解析エラー: ${error.message}`);
       }
     }
 
     // Generate endpoint - redirect to dedicated handler
     if (path === 'generate' && method === 'POST') {
       // この古い実装は使用しない - 専用のgenerate.jsにリダイレクト
-      return res.status(301).json({
-        success: false,
-        redirect: '/api/generate',
-        message: 'このエンドポイントは /api/generate に移動しました'
-      });
+      return sendErrorResponse(res, 301, 'このエンドポイントは /api/generate に移動しました');
     }
 
     // Batch generate endpoint - redirect to dedicated handler
     if (path === 'generate/batch' && method === 'POST') {
-      return res.status(301).json({
-        success: false,
-        redirect: '/api/generate/batch',
-        message: 'このエンドポイントは /api/generate/batch に移動しました'
-      });
+      return sendErrorResponse(res, 301, 'このエンドポイントは /api/generate/batch に移動しました');
     }
 
     // URL analysis endpoint - redirect to dedicated handler
     if (path === 'analyze/url' && method === 'POST') {
-      return res.status(301).json({
-        success: false,
-        redirect: '/api/analyze-url',
-        message: 'このエンドポイントは /api/analyze-url に移動しました'
-      });
+      return sendErrorResponse(res, 301, 'このエンドポイントは /api/analyze-url に移動しました');
     }
 
     // Default 404 response
-    return res.status(404).json({
-      error: 'Endpoint not found',
-      path: path,
-      method: method
-    });
+    return sendErrorResponse(res, 404, `Endpoint not found: ${method} ${path}`);
 
   } catch (error) {
-    console.error('API Error:', error);
-    return res.status(500).json({
-      error: 'Server error',
-      message: error.message
-    });
+    logger.error('API Error:', error);
+    return sendErrorResponse(res, 500, `Server error: ${error.message}`);
   }
 }

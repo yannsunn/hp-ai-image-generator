@@ -1,14 +1,10 @@
 const { kv } = require('@vercel/kv');
+const logger = require('../utils/logger');
+const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
 
 module.exports = async function handler(req, res) {
   // Enable CORS
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
+  setCorsHeaders(res);
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -24,8 +20,7 @@ module.exports = async function handler(req, res) {
       const imageIds = await kv.smembers(`user:${userId}:images`);
       
       if (!imageIds || imageIds.length === 0) {
-        return res.status(200).json({
-          success: true,
+        return sendSuccessResponse(res, {
           images: [],
           total: 0
         });
@@ -43,8 +38,7 @@ module.exports = async function handler(req, res) {
       // 作成日時でソート（新しい順）
       images.sort((a, b) => new Date(b.metadata.createdAt) - new Date(a.metadata.createdAt));
       
-      return res.status(200).json({
-        success: true,
+      return sendSuccessResponse(res, {
         images: images,
         total: imageIds.length,
         limit: parseInt(limit),
@@ -52,24 +46,20 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return res.status(405).json({ error: 'Method not allowed' });
+    return sendErrorResponse(res, 405, 'Method not allowed');
     
   } catch (error) {
-    console.error('Get history error:', error);
+    logger.error('Get history error:', error);
     
     // Vercel KVが設定されていない場合のフォールバック
     if (error.message && error.message.includes('KV_REST_API_URL')) {
-      return res.status(200).json({
-        success: true,
+      return sendSuccessResponse(res, {
         images: [],
         total: 0,
         warning: 'Vercel KVが設定されていないため、履歴は利用できません'
       });
     }
     
-    return res.status(500).json({
-      error: 'サーバーエラー',
-      message: error.message || '履歴の取得に失敗しました'
-    });
+    return sendErrorResponse(res, 500, error.message || '履歴の取得に失敗しました');
   }
 };
