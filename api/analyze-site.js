@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const { URL } = require('url');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
+const { validateUrl } = require('./utils/input-validator');
 
 // 既存のキーワード辞書をインポート
 const { industryKeywords, contentTypePatterns } = require('./utils/keywords');
@@ -347,6 +348,13 @@ module.exports = async function handler(req, res) {
     if (!url) {
       return sendErrorResponse(res, 400, 'URLが指定されていません');
     }
+    
+    // URL検証
+    const urlValidation = validateUrl(url);
+    if (!urlValidation.valid) {
+      return sendErrorResponse(res, 400, urlValidation.error);
+    }
+    const validatedUrl = urlValidation.sanitized;
     
     // 詳細解析の場合
     if (detailed) {
