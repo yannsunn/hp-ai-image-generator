@@ -33,6 +33,7 @@ const ImageGenerationForm = () => {
   // APIの可用性をチェック
   useEffect(() => {
     fetchAvailableApis();
+    upgradeLocalStorage(); // localStorage履歴をアップグレード
   }, []);
 
   const fetchAvailableApis = async () => {
@@ -321,10 +322,23 @@ const ImageGenerationForm = () => {
         if (data.warning) {
           try {
             const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
-            // 画像データを保存せず、メタデータのみ保存
+            // 開発環境またはローカル環境では画像データも保存
+            const shouldSaveImage = window.location.hostname === 'localhost' || 
+                                   window.location.hostname === '127.0.0.1' || 
+                                   window.location.hostname.includes('local') ||
+                                   import.meta.env?.DEV === true ||
+                                   import.meta.env?.MODE === 'development';
+            
+            console.log('Debug: shouldSaveImage =', shouldSaveImage, {
+              hostname: window.location.hostname,
+              isDev: import.meta.env?.DEV,
+              mode: import.meta.env?.MODE,
+              hasImageSrc: !!image.src
+            });
+            
             localHistory.unshift({
               id: data.imageId,
-              // 画像は保存しない（容量節約）
+              image: shouldSaveImage ? image.src : null, // 開発環境では画像も保存
               metadata: {
                 prompt: image.prompt,
                 enhancedPrompt: image.enhancedPrompt,
@@ -333,9 +347,10 @@ const ImageGenerationForm = () => {
                 createdAt: new Date().toISOString()
               }
             });
-            // 最大20件まで保存（容量節約）
-            if (localHistory.length > 20) {
-              localHistory.pop();
+            // 最大保存件数を環境に応じて調整
+            const maxItems = shouldSaveImage ? 10 : 20; // 画像ありの場合は少なめ
+            if (localHistory.length > maxItems) {
+              localHistory.splice(maxItems);
             }
             localStorage.setItem('imageHistory', JSON.stringify(localHistory));
           } catch (storageError) {
@@ -343,6 +358,20 @@ const ImageGenerationForm = () => {
             // 容量エラーの場合は履歴をクリア
             if (storageError.name === 'QuotaExceededError') {
               localStorage.removeItem('imageHistory');
+              // より小さなサイズで再試行
+              try {
+                const minimalHistory = [{
+                  id: data.imageId,
+                  metadata: {
+                    prompt: image.prompt.substring(0, 100),
+                    api: image.api,
+                    createdAt: new Date().toISOString()
+                  }
+                }];
+                localStorage.setItem('imageHistory', JSON.stringify(minimalHistory));
+              } catch (retryError) {
+                logger.error('履歴保存完全失敗:', retryError);
+              }
             }
           }
         }
@@ -350,12 +379,18 @@ const ImageGenerationForm = () => {
     } catch (err) {
       logger.error('画像保存エラー:', err);
       
-      // エラー時もローカルストレージに保存（メタデータのみ）
+      // エラー時もローカルストレージに保存
       try {
         const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+        const shouldSaveImage = window.location.hostname === 'localhost' || 
+                               window.location.hostname === '127.0.0.1' || 
+                               window.location.hostname.includes('local') ||
+                               import.meta.env?.DEV === true ||
+                               import.meta.env?.MODE === 'development';
+        
         localHistory.unshift({
           id: 'local-' + Date.now(),
-          // 画像は保存しない（容量節約）
+          image: shouldSaveImage ? image.src : null, // 開発環境では画像も保存
           metadata: {
             prompt: image.prompt,
             enhancedPrompt: image.enhancedPrompt,
@@ -364,13 +399,15 @@ const ImageGenerationForm = () => {
             createdAt: new Date().toISOString()
           }
         });
-        if (localHistory.length > 20) {
-          localHistory.pop();
+        
+        const maxItems = shouldSaveImage ? 10 : 20;
+        if (localHistory.length > maxItems) {
+          localHistory.splice(maxItems);
         }
         localStorage.setItem('imageHistory', JSON.stringify(localHistory));
       } catch (storageError) {
         logger.warn('LocalStorage保存エラー:', storageError);
-        if (storageError.name === 'QuotaExceededError') {
+        if (storageError.name === 'QuotaExceeded Error') {
           localStorage.removeItem('imageHistory');
         }
       }
@@ -404,6 +441,29 @@ const ImageGenerationForm = () => {
       setImageHistory(localHistory);
     } finally {
       setIsLoadingHistory(false);
+    }
+  };
+
+  // localStorage履歴のアップグレード（開発環境でのデバッグ用）
+  const upgradeLocalStorage = () => {
+    try {
+      const isDev = window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname.includes('local') ||
+                   import.meta.env?.DEV === true ||
+                   import.meta.env?.MODE === 'development';
+      
+      if (!isDev) return; // 開発環境以外では実行しない
+      
+      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+      const needsUpgrade = localHistory.some(item => !item.image && item.metadata);
+      
+      if (needsUpgrade) {
+        logger.info('LocalStorage履歴のアップグレードが必要ですが、画像データを復元できません。');
+        // 注意: 過去の画像データは復元できないため、新しい画像生成時のみ保存される
+      }
+    } catch (error) {
+      logger.error('LocalStorage履歴アップグレードエラー:', error);
     }
   };
 

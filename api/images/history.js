@@ -16,27 +16,44 @@ module.exports = async function handler(req, res) {
       const userId = req.headers['x-user-id'] || 'default';
       const { limit = 20, offset = 0 } = req.query;
       
+      // 数値の検証と正規化
+      const validLimit = Math.min(Math.max(parseInt(limit, 10) || 20, 1), 100);
+      const validOffset = Math.max(parseInt(offset, 10) || 0, 0);
+      
       // ユーザーの画像IDリストを取得
       const imageIds = await kv.smembers(`user:${userId}:images`);
       
       if (!imageIds || imageIds.length === 0) {
         return sendSuccessResponse(res, {
           images: [],
-          total: 0
+          total: 0,
+          limit: validLimit,
+          offset: validOffset
         });
       }
       
       // 画像データを取得
       const images = [];
-      for (const imageId of imageIds.slice(validOffset, validOffset + validLimit)) {
-        const imageData = await kv.get(`image:${imageId}`);
-        if (imageData) {
-          images.push(imageData);
+      const slicedImageIds = imageIds.slice(validOffset, validOffset + validLimit);
+      
+      for (const imageId of slicedImageIds) {
+        try {
+          const imageData = await kv.get(`image:${imageId}`);
+          if (imageData) {
+            images.push(imageData);
+          }
+        } catch (kvError) {
+          logger.warn(`Failed to get image ${imageId}:`, kvError);
+          // 個別の画像取得エラーは無視して続行
         }
       }
       
       // 作成日時でソート（新しい順）
-      images.sort((a, b) => new Date(b.metadata.createdAt) - new Date(a.metadata.createdAt));
+      images.sort((a, b) => {
+        const dateA = new Date(a.metadata?.createdAt || 0);
+        const dateB = new Date(b.metadata?.createdAt || 0);
+        return dateB - dateA;
+      });
       
       return sendSuccessResponse(res, {
         images: images,
