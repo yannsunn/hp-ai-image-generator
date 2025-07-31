@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const { validatePrompt } = require('./utils/validation');
+const { translateInstruction, translateInstructions } = require('./utils/japanese-to-english');
 
 // ULTRA最適化: インテリジェント・プロンプト・エンジン
 class UltraPromptEngine {
@@ -385,12 +386,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { prompt, context = {}, api: selectedApi = 'auto', count = 1 } = req.body || {};
+    const { prompt, context = {}, api: selectedApi = 'auto', count = 1, additionalInstructions = [] } = req.body || {};
     
     // プロンプト検証
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.valid) {
       return res.status(400).json({ error: promptValidation.error });
+    }
+    
+    // 日本語の追加指示を英語に変換
+    const translatedInstructions = translateInstructions(additionalInstructions);
+    
+    // メインプロンプトと追加指示を結合
+    let combinedPrompt = prompt;
+    if (translatedInstructions.length > 0) {
+      combinedPrompt = `${prompt}, ${translatedInstructions.join(', ')}`;
     }
 
     // API選択の最適化
@@ -410,7 +420,7 @@ module.exports = async function handler(req, res) {
     
     
     // ULTRA実行
-    const results = await ultraEngine.executeUltraGeneration(prompt, context, apiToUse, count);
+    const results = await ultraEngine.executeUltraGeneration(combinedPrompt, context, apiToUse, count);
     
     // パフォーマンス統計取得
     const performanceStats = ultraEngine.getPerformanceStats();
@@ -436,7 +446,8 @@ module.exports = async function handler(req, res) {
           'parallel_execution_engine',
           'performance_optimization',
           'japanese_business_specialization'
-        ]
+        ],
+        additional_instructions_applied: translatedInstructions.length > 0
       }
     });
 

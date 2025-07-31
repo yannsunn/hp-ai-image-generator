@@ -210,15 +210,6 @@ const ImageGenerationForm = () => {
     setIsGenerating(true);
     setError('');
 
-    // すべての指示文を結合
-    const allInstructions = [prompt];
-    additionalInstructions.forEach(instruction => {
-      if (instruction.trim()) {
-        allInstructions.push(instruction.trim());
-      }
-    });
-    const combinedPrompt = allInstructions.join('. ');
-
     try {
       // ULTRAモードの判定
       const useUltraMode = ultraMode || qualityPrediction?.level === 'EXCELLENT';
@@ -232,7 +223,8 @@ const ImageGenerationForm = () => {
       }
       
       const requestPayload = {
-        prompt: combinedPrompt,
+        prompt: prompt, // メインプロンプトのみ送信
+        additionalInstructions: additionalInstructions.filter(inst => inst.trim()), // 日本語の追加指示を別途送信
         api: selectedApi,
         count: numberOfImages,
         context: {
@@ -484,8 +476,12 @@ const ImageGenerationForm = () => {
   };
 
   // 追加の指示文を追加
-  const addInstruction = () => {
-    setAdditionalInstructions([...additionalInstructions, '']);
+  const addInstruction = (preset = '') => {
+    if (preset) {
+      setAdditionalInstructions([...additionalInstructions, preset]);
+    } else {
+      setAdditionalInstructions([...additionalInstructions, '']);
+    }
   };
 
   // 指示文を更新
@@ -895,7 +891,7 @@ const ImageGenerationForm = () => {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-medium text-gray-700">
-                    追加の指示文
+                    追加の指示文（日本語で入力可）
                   </label>
                   <button
                     type="button"
@@ -903,6 +899,66 @@ const ImageGenerationForm = () => {
                     className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                   >
                     + 指示を追加
+                  </button>
+                </div>
+                
+                {/* よく使う指示文のプリセット */}
+                <div className="flex flex-wrap gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('高品質で写実的な画像')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    高品質
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('明るく清潔感のある雰囲気')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    明るい雰囲気
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('プロフェッショナルな印象')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    プロフェッショナル
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('信頼感のあるデザイン')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    信頼感
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('モダンでスタイリッシュ')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    モダン
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('温かみのある雰囲気')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    温かみ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('ミニマリストデザイン')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    ミニマル
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => addInstruction('日本的な美意識')}
+                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                  >
+                    和風
                   </button>
                 </div>
                 

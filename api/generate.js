@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const { validatePrompt } = require('./utils/validation');
+const { translateInstruction, translateInstructions } = require('./utils/japanese-to-english');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
@@ -90,12 +91,21 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { prompt, context = {}, api: selectedApi = 'auto' } = req.body || {};
+    const { prompt, context = {}, api: selectedApi = 'auto', additionalInstructions = [] } = req.body || {};
     
     // プロンプトの検証
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.valid) {
       return res.status(400).json({ error: promptValidation.error });
+    }
+    
+    // 日本語の追加指示を英語に変換
+    const translatedInstructions = translateInstructions(additionalInstructions);
+    
+    // メインプロンプトと追加指示を結合
+    let combinedPrompt = prompt;
+    if (translatedInstructions.length > 0) {
+      combinedPrompt = `${prompt}, ${translatedInstructions.join(', ')}`;
     }
 
     // API選択ロジック（環境変数ベース）
@@ -124,8 +134,7 @@ module.exports = async function handler(req, res) {
           if (!process.env.OPENAI_API_KEY) {
             throw new Error('OpenAI API key is not configured');
           }
-          const japanesePrompt = enhancePromptForJapan(prompt, context);
-          const result = await generateWithOpenAI(japanesePrompt, process.env.OPENAI_API_KEY, context);
+          const result = await generateWithOpenAI(enhancePromptForJapan(combinedPrompt, context), process.env.OPENAI_API_KEY, context);
           generatedImage = result.image;
           cost = result.cost;
           apiUsed = 'openai';
@@ -135,8 +144,7 @@ module.exports = async function handler(req, res) {
           if (!process.env.STABILITY_API_KEY) {
             throw new Error('Stability AI API key is not configured');
           }
-          const japanesePromptStability = enhancePromptForJapan(prompt, context);
-          const stabilityResult = await generateWithStability(japanesePromptStability, process.env.STABILITY_API_KEY, context);
+          const stabilityResult = await generateWithStability(enhancePromptForJapan(combinedPrompt, context), process.env.STABILITY_API_KEY, context);
           generatedImage = stabilityResult.image;
           cost = stabilityResult.cost;
           apiUsed = 'stability';
@@ -146,8 +154,7 @@ module.exports = async function handler(req, res) {
           if (!process.env.REPLICATE_API_TOKEN) {
             throw new Error('Replicate API token is not configured');
           }
-          const japanesePromptReplicate = enhancePromptForJapan(prompt, context);
-          const replicateResult = await generateWithReplicate(japanesePromptReplicate, process.env.REPLICATE_API_TOKEN, context);
+          const replicateResult = await generateWithReplicate(enhancePromptForJapan(combinedPrompt, context), process.env.REPLICATE_API_TOKEN, context);
           generatedImage = replicateResult.image;
           cost = replicateResult.cost;
           apiUsed = 'replicate';

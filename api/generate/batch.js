@@ -2,6 +2,7 @@ const OpenAI = require('openai');
 const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const { validatePrompt } = require('../utils/validation');
+const { translateInstruction, translateInstructions } = require('../utils/japanese-to-english');
 
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
@@ -94,12 +95,21 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'POST') {
     
-    const { prompt, count = 1, context = {}, api: selectedApi = 'auto' } = req.body || {};
+    const { prompt, count = 1, context = {}, api: selectedApi = 'auto', additionalInstructions = [] } = req.body || {};
     
     // プロンプトの検証
     const promptValidation = validatePrompt(prompt);
     if (!promptValidation.valid) {
       return res.status(400).json({ error: promptValidation.error });
+    }
+    
+    // 日本語の追加指示を英語に変換
+    const translatedInstructions = translateInstructions(additionalInstructions);
+    
+    // メインプロンプトと追加指示を結合
+    let combinedPrompt = prompt;
+    if (translatedInstructions.length > 0) {
+      combinedPrompt = `${prompt}, ${translatedInstructions.join(', ')}`;
     }
 
     if (count > 8) {
@@ -141,7 +151,7 @@ module.exports = async function handler(req, res) {
     for (let i = 0; i < count; i += batchSize) {
       const batch = [];
       for (let j = i; j < Math.min(i + batchSize, count); j++) {
-        batch.push(generateSingleImage(prompt, apiToUse, context, j, availableApis));
+        batch.push(generateSingleImage(combinedPrompt, apiToUse, context, j, availableApis));
       }
       
       const batchResults = await Promise.allSettled(batch);
@@ -202,7 +212,8 @@ module.exports = async function handler(req, res) {
         requested: count,
         generated: images.length,
         failed: errors.length,
-        api_used: apiToUse
+        api_used: apiToUse,
+        additional_instructions_applied: translatedInstructions.length > 0
       }
     });
   }
