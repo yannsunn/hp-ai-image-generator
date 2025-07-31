@@ -226,15 +226,21 @@ const ImageGenerationForm = () => {
       let data;
       
       // レスポンスの処理
+      let responseText;
       try {
-        data = await response.json();
-      } catch (parseError) {
-        // JSONパースエラーの場合
-        logger.error('API Response Parse Error:', parseError);
+        // まずテキストとして読み取る
+        responseText = await response.text();
         
-        // body stream already read エラーの場合
-        if (parseError.message.includes('body stream already read')) {
-          throw new Error('レスポンス処理エラー。再度お試しください。');
+        // JSONとしてパース
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        // JSONパースエラーの場合 - より詳細な情報を取得
+        logger.error('API Response Parse Error:', parseError);
+        logger.error('Raw response:', responseText?.substring(0, 200));
+        
+        // 開発環境でのみ詳細エラーを表示
+        if (import.meta.env?.DEV) {
+          throw new Error(`JSON Parse Error: ${parseError.message}\nResponse: ${responseText?.substring(0, 100)}...`);
         }
         
         throw new Error(`Server error: ${response.status} - ${parseError.message}`);

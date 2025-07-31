@@ -3,11 +3,9 @@ const cheerio = require('cheerio');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 const { validateUrl } = require('./utils/input-validator');
-const { createRateLimitMiddleware } = require('./utils/rate-limiter');
+const { rateLimiter } = require('./utils/rate-limiter');
 const { analyzeContent } = require('./utils/content-analyzer');
-
-// レート制限ミドルウェア
-const rateLimitMiddleware = createRateLimitMiddleware('analyze-url');
+const { withErrorHandler } = require('./utils/global-error-handler');
 
 // URLの安全性検証
 function isValidUrl(url) {
@@ -205,7 +203,7 @@ async function analyzeUrl(url) {
   }
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   // CORS設定（セキュア）
   if (!setCorsHeaders(res, req)) {
     return sendErrorResponse(res, 403, 'CORS policy violation');
@@ -221,16 +219,18 @@ module.exports = async function handler(req, res) {
   }
 
   // レート制限チェック
-  return new Promise((resolve, reject) => {
-    rateLimitMiddleware(req, res, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(analyzeUrlHandler(req, res));
-      }
-    });
-  });
-};
+  const rateLimitResult = rateLimiter.checkApiLimit(req, 'analyze-url');
+  if (!rateLimitResult.allowed) {
+    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
+    res.setHeader('Retry-After', retryAfter);
+    return sendErrorResponse(res, 429, 'レート制限に達しました', 
+      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
+  }
+
+  return analyzeUrlHandler(req, res);
+}
+
+module.exports = withErrorHandler(handler);
 
 async function analyzeUrlHandler(req, res) {
   try {

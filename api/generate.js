@@ -10,8 +10,9 @@ const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 const { validateGenerateRequest } = require('./utils/input-validator');
 const { rateLimiter } = require('./utils/rate-limiter');
+const { withErrorHandler } = require('./utils/global-error-handler');
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   // CORS設定（セキュア）
   if (!setCorsHeaders(res, req)) {
     return sendErrorResponse(res, 403, 'CORS policy violation');
@@ -35,14 +36,11 @@ module.exports = async function handler(req, res) {
       `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
   }
 
-  try {
-    // メイン処理を実行
-    return await generateImage(req, res);
-  } catch (error) {
-    logger.error('Generate API error:', error);
-    return sendErrorResponse(res, 500, error.message || '画像生成に失敗しました');
-  }
-};
+  // メイン処理を実行
+  return await generateImage(req, res);
+}
+
+module.exports = withErrorHandler(handler);
 
 async function generateImage(req, res) {
 

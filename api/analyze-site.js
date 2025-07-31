@@ -4,6 +4,7 @@ const { URL } = require('url');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 const { validateUrl } = require('./utils/input-validator');
+const { withErrorHandler } = require('./utils/global-error-handler');
 
 // 既存のキーワード辞書をインポート
 const { industryKeywords, contentTypePatterns } = require('./utils/keywords');
@@ -329,7 +330,7 @@ function generateDetailedPrompt(industry, themes, visualStyle, topPageData) {
   return prompts.join(', ');
 }
 
-module.exports = async function handler(req, res) {
+async function handler(req, res) {
   
   // Enable CORS
   setCorsHeaders(res);
@@ -373,4 +374,6 @@ module.exports = async function handler(req, res) {
     logger.error('API handler error:', error);
     return sendErrorResponse(res, 500, error.message || '解析エラー');
   }
-};
+}
+
+module.exports = withErrorHandler(handler);
