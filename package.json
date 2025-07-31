@@ -1,16 +1,52 @@
 {
-  "name": "hp-ai-image-generator-monorepo",
+  "name": "hp-ai-image-generator",
   "version": "1.0.0",
-  "private": true,
-  "type": "module",
+  "description": "AI-powered image generation system for Japanese homepage creation",
   "scripts": {
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
-    "preview": "cd frontend && npm run preview",
-    "install:frontend": "cd frontend && npm install",
-    "clean": "cd frontend && rm -rf node_modules package-lock.json && npm cache clean --force"
+    "start": "cd frontend && npm run start",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "typecheck": "cd frontend && npm run type-check"
   },
-  "engines": {
-    "node": ">=18.0.0"
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.12",
+    "node-fetch": "^2.7.0",
+    "openai": "^4.20.1",
+    "uuid": "^9.0.1",
+    "@vercel/kv": "^1.0.1"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-node": "^29.7.0",
+    "@jest/globals": "^29.7.0",
+    "supertest": "^6.3.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-jest": "^27.6.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+    "testMatch": [
+      "<rootDir>/tests/**/*.test.js",
+      "<rootDir>/api/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "api/**/*.js",
+      "!api/**/test/**",
+      "!**/node_modules/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
   }
 }

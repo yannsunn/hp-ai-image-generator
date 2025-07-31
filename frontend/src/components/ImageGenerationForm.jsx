@@ -329,12 +329,15 @@ const ImageGenerationForm = () => {
                                    import.meta.env?.DEV === true ||
                                    import.meta.env?.MODE === 'development';
             
-            console.log('Debug: shouldSaveImage =', shouldSaveImage, {
-              hostname: window.location.hostname,
-              isDev: import.meta.env?.DEV,
-              mode: import.meta.env?.MODE,
-              hasImageSrc: !!image.src
-            });
+            // デバッグ情報をログに記録（開発環境のみ）
+            if (import.meta.env?.DEV) {
+              console.log('Debug: shouldSaveImage =', shouldSaveImage, {
+                hostname: window.location.hostname,
+                isDev: import.meta.env?.DEV,
+                mode: import.meta.env?.MODE,
+                hasImageSrc: !!image.src
+              });
+            }
             
             localHistory.unshift({
               id: data.imageId,
