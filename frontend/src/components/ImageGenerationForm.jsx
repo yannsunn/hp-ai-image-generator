@@ -143,38 +143,6 @@ const ImageGenerationForm = () => {
         }
         setIsAnalyzingUrl(false);
         
-      } else {
-        // 簡易解析（既存の処理）
-        const response = await fetch('/api/analyze-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'URL解析に失敗しました');
-        }
-
-        if (data.success) {
-          setUrlContent(data.content);
-          setPrompt(data.suggested_prompt);
-          setContext({
-            industry: data.industry || '',
-            contentType: data.content_type || ''
-          });
-          
-          if (data.style_suggestions) {
-            setPromptAnalysis(prev => ({
-              ...prev,
-              style_suggestions: data.style_suggestions.style_keywords || [],
-              color_palette: data.style_suggestions.color_palette || [],
-              composition: data.style_suggestions.composition || {}
-            }));
-          }
-        }
-        setIsAnalyzingUrl(false);
       }
     } catch (err) {
       setError(err.message || 'URL解析に失敗しました');
@@ -777,31 +745,17 @@ const ImageGenerationForm = () => {
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
                     <button
-                      onClick={analyzeUrl}
-                      disabled={isAnalyzingUrl || !url.trim()}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    >
-                      {isAnalyzingUrl ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          解析中
-                        </>
-                      ) : (
-                        '簡易解析'
-                      )}
-                    </button>
-                    <button
                       onClick={() => analyzeUrl(true)}
                       disabled={isAnalyzingUrl || !url.trim()}
                       className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {isAnalyzingUrl && isDetailedAnalysis ? (
+                      {isAnalyzingUrl ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
                           {analysisProgress}%
                         </>
                       ) : (
-                        '詳細解析'
+                        'URL解析'
                       )}
                     </button>
                   </div>
