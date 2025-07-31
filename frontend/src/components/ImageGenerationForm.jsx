@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
 import ImageEditingPanel from './ImageEditingPanel';
+import ImageGallery from './ImageGallery';
 
 const ImageGenerationForm = () => {
   const [prompt, setPrompt] = useState('');
@@ -961,44 +962,12 @@ const ImageGenerationForm = () => {
 
           {/* 生成された画像 */}
           {generatedImages.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">生成された画像</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {generatedImages.map((image) => (
-                  <div key={image.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow duration-200">
-                    <img
-                      src={image.src}
-                      alt={image.prompt}
-                      className="w-full h-64 object-cover"
-                    />
-                    <div className="p-4">
-                      <p className="text-sm text-gray-600 mb-2 line-clamp-2">
-                        {image.prompt}
-                      </p>
-                      <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                        <span>API: {image.api}</span>
-                        <span>${image.cost.toFixed(4)}</span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEdit(image)}
-                          className="flex-1 px-3 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          編集
-                        </button>
-                        <button
-                          onClick={() => handleDownload(image.src, `image-${image.id}.png`)}
-                          className="flex-1 px-3 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Download className="w-4 h-4" />
-                          保存
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="bg-gray-50/50 rounded-2xl p-8">
+              <ImageGallery 
+                images={generatedImages}
+                onEdit={handleEdit}
+                onDownload={handleDownload}
+              />
             </div>
           )}
         </div>

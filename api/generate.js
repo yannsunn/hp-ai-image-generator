@@ -190,7 +190,7 @@ module.exports = async function handler(req, res) {
         api_used: apiUsed,
         cost: cost,
         generation_time: generationTime,
-        resolution: 'varies',
+        resolution: getResolution(apiUsed),
         format: 'PNG/JPEG',
         context: context,
         timestamp: new Date().toISOString()
@@ -351,3 +351,16 @@ async function generateWithReplicate(prompt, apiToken, context = {}) {
 }
 
 // デモ画像生成関数は削除 - エラー時はエラーを返す
+
+// 解像度を取得
+function getResolution(api) {
+  switch (api) {
+    case 'openai':
+      return '1024x1024';
+    case 'stability':
+    case 'replicate':
+      return '1024x1024';
+    default:
+      return '512x512';
+  }
+}
