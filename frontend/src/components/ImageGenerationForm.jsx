@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
-import ImageEditingPanel from './ImageEditingPanel';
 import ImageGallery from './ImageGallery';
 
 const ImageGenerationForm = () => {
@@ -20,7 +19,6 @@ const ImageGenerationForm = () => {
   const [error, setError] = useState('');
   const [availableApis, setAvailableApis] = useState([]);
   const [promptAnalysis, setPromptAnalysis] = useState(null);
-  const [editingImage, setEditingImage] = useState(null);
   const [totalCost, setTotalCost] = useState(0);
   const [urlContent, setUrlContent] = useState(null);
   const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
@@ -407,14 +405,7 @@ const ImageGenerationForm = () => {
   };
 
   const handleEdit = (image) => {
-    setEditingImage(image);
-  };
-
-  const handleEditComplete = (editedImage) => {
-    setGeneratedImages(generatedImages.map(img => 
-      img.id === editedImage.id ? editedImage : img
-    ));
-    setEditingImage(null);
+    // 編集機能は未実装
   };
 
   const handleDownload = (imageSrc, filename) => {
@@ -973,14 +964,6 @@ const ImageGenerationForm = () => {
         </div>
       </div>
 
-      {/* 画像編集パネル */}
-      {editingImage && (
-        <ImageEditingPanel
-          image={editingImage}
-          onClose={() => setEditingImage(null)}
-          onSave={handleEditComplete}
-        />
-      )}
 
       {/* 履歴モーダル */}
       {showHistory && (

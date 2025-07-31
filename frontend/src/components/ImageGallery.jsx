@@ -126,14 +126,8 @@ const ImageGallery = ({ images, onEdit, onDownload }) => {
               {/* アクションボタン */}
               <div className="flex gap-3 pt-4">
                 <button
-                  onClick={() => onEdit(image)}
-                  className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                >
-                  画像を編集
-                </button>
-                <button
                   onClick={() => onDownload(image.src, `image-${image.id}.png`)}
-                  className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
+                  className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium"
                 >
                   ダウンロード
                 </button>
@@ -220,15 +214,6 @@ const ImageGallery = ({ images, onEdit, onDownload }) => {
                           <p className="text-xs text-gray-500">${image.cost?.toFixed(3) || '0.000'}</p>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(image);
-                        }}
-                        className="text-purple-600 hover:text-purple-700 text-sm font-medium"
-                      >
-                        編集
-                      </button>
                     </div>
                   </div>
                 </div>
