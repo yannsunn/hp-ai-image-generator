@@ -136,6 +136,46 @@ const ImageGenerationForm = () => {
         }
         setIsAnalyzingUrl(false);
         
+      } else {
+        // 単純解析（新しい自動推測機能付き）
+        const response = await fetch('/api/analyze-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'URL解析に失敗しました');
+        }
+
+        if (data.success) {
+          setUrlContent(data.content);
+          setPrompt(data.suggested_prompt);
+          
+          // 自動推測された業界とコンテンツタイプを設定
+          setContext({
+            industry: data.industry || '',
+            contentType: data.content_type || 'hero'
+          });
+
+          // 複数のコンテンツタイプが検出された場合は自動選択
+          if (data.detected_content_types && data.detected_content_types.length > 0) {
+            setSelectedContentTypes(data.detected_content_types.slice(0, 3)); // 上位3つまで自動選択
+          }
+
+          // 分析結果をプロンプト解析に反映
+          if (data.analysis) {
+            setPromptAnalysis(prev => ({
+              ...prev,
+              industry_confidence: data.analysis.industry_confidence,
+              detected_themes: data.analysis.content_types_detected?.map(ct => ct.type) || [],
+              analysis_method: data.analysis.analysis_method
+            }));
+          }
+        }
+        setIsAnalyzingUrl(false);
       }
     } catch (err) {
       setError(err.message || 'URL解析に失敗しました');
@@ -633,12 +673,31 @@ const ImageGenerationForm = () => {
                   </div>
                   {urlContent && (
                     <div className="mt-2 p-3 bg-blue-50 rounded-lg text-sm">
-                      <p className="font-medium text-blue-900">サイト解析完了</p>
+                      <p className="font-medium text-blue-900">✅ サイト解析完了・自動設定済み</p>
                       <p className="text-blue-700">{urlContent.title}</p>
                       {context.industry && (
-                        <p className="text-blue-600 mt-1">
-                          業界: {context.industry} / タイプ: {context.contentType}
-                        </p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-blue-600">
+                            🏢 推測業界: <span className="font-semibold">{
+                              industries.find(ind => ind.value === context.industry)?.label || context.industry
+                            }</span>
+                          </p>
+                          {selectedContentTypes.length > 0 && (
+                            <p className="text-blue-600">
+                              📋 推測コンテンツタイプ: <span className="font-semibold">
+                                {selectedContentTypes.map(type => 
+                                  contentTypes.find(ct => ct.value === type)?.label || type
+                                ).join(', ')}
+                              </span>
+                            </p>
+                          )}
+                          {promptAnalysis?.industry_confidence && (
+                            <p className="text-blue-500 text-xs">
+                              信頼度: {promptAnalysis.industry_confidence === 'high' ? '高' : 
+                                      promptAnalysis.industry_confidence === 'medium' ? '中' : '低'}
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}

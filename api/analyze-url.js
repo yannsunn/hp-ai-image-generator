@@ -2,55 +2,7 @@ const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
-
-// 業界判定用のキーワード辞書
-const industryKeywords = {
-  'technology': ['テクノロジー', 'IT', 'ソフトウェア', 'システム', 'デジタル', 'AI', '人工知能', 'IoT', 'DX', 'クラウド', 'セキュリティ', 'データ'],
-  'healthcare': ['医療', '病院', 'クリニック', '診療', '医師', '看護', '健康', 'ヘルスケア', '薬', '治療', '患者', '医学'],
-  'education': ['教育', '学校', '大学', '塾', '学習', '授業', '講座', 'eラーニング', '研修', '資格', '試験', '生徒'],
-  'finance': ['金融', '銀行', '保険', '投資', '証券', '資産', 'ローン', '融資', 'ファイナンス', '決済', '為替', '株式'],
-  'retail': ['小売', '販売', 'ショップ', '店舗', '通販', 'EC', 'eコマース', '商品', '買い物', 'オンラインストア', 'ショッピング'],
-  'restaurant': ['レストラン', '飲食', 'カフェ', '料理', 'フード', 'グルメ', 'ダイニング', 'ランチ', 'ディナー', 'メニュー', '食事'],
-  'realestate': ['不動産', '物件', '住宅', 'マンション', '賃貸', '売買', '建築', '建設', 'リフォーム', '住まい', '土地'],
-  'beauty': ['美容', 'エステ', 'サロン', 'ヘアサロン', 'ネイル', 'スパ', 'コスメ', '化粧品', 'ビューティー', 'スキンケア', 'メイク'],
-  'travel': ['旅行', '観光', 'ホテル', '宿泊', 'ツアー', 'トラベル', '旅館', '観光地', '予約', 'プラン', '温泉'],
-  'manufacturing': ['製造', '工場', '生産', 'メーカー', '産業', '工業', '部品', '機械', '設備', '品質', '製品'],
-  'consulting': ['コンサルティング', 'コンサル', 'アドバイザー', 'ソリューション', '戦略', '経営', 'ビジネス', '支援', '改善', '効率化'],
-  'legal': ['法律', '弁護士', '司法書士', '行政書士', '法務', 'リーガル', '契約', '相談', '訴訟', '法的'],
-  'nonprofit': ['NPO', '非営利', 'ボランティア', '社会貢献', '支援', '福祉', '団体', '活動', '寄付', 'チャリティー']
-};
-
-// コンテンツタイプ判定用のパターン
-const contentTypePatterns = {
-  'hero': {
-    keywords: ['ヒーロー', 'メインビジュアル', 'トップ', 'ホーム', 'ランディング'],
-    indicators: ['h1', '.hero', '#hero', '.main-visual', '.top-visual']
-  },
-  'product': {
-    keywords: ['製品', '商品', 'プロダクト', 'サービス', '機能', '特徴', '価格'],
-    indicators: ['.product', '.item', '.service', '.pricing']
-  },
-  'about': {
-    keywords: ['について', '会社概要', '私たち', 'ミッション', 'ビジョン', '理念', '歴史'],
-    indicators: ['.about', '#about', '.company', '.mission']
-  },
-  'feature': {
-    keywords: ['特徴', '機能', 'メリット', '強み', 'ポイント', '選ばれる理由'],
-    indicators: ['.feature', '.benefit', '.advantage']
-  },
-  'testimonial': {
-    keywords: ['お客様の声', '事例', 'レビュー', '評価', '体験談', '導入事例'],
-    indicators: ['.testimonial', '.review', '.case-study']
-  },
-  'team': {
-    keywords: ['チーム', 'スタッフ', 'メンバー', '社員', '組織', '代表'],
-    indicators: ['.team', '.staff', '.member']
-  },
-  'cta': {
-    keywords: ['お問い合わせ', '資料請求', '無料相談', '申し込み', '登録', '今すぐ'],
-    indicators: ['.cta', '.contact', '.form', 'button']
-  }
-};
+const { analyzeContent } = require('./utils/content-analyzer');
 
 // URLの安全性検証
 function isValidUrl(url) {
@@ -98,12 +50,14 @@ async function analyzeUrl(url) {
       response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; AI-Image-Generator/1.0)',
-          'Accept': 'text/html,application/xhtml+xml',
-          'Accept-Language': 'ja,en;q=0.9'
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'ja,en-US;q=0.7,en;q=0.3',
+          'Accept-Encoding': 'gzip, deflate',
+          'Connection': 'keep-alive',
+          'Upgrade-Insecure-Requests': '1'
         },
-        redirect: 'follow',
-        compress: true
+        timeout: 15000
       });
       
       clearTimeout(timeout);
@@ -112,117 +66,80 @@ async function analyzeUrl(url) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // テキストとして取得
       const html = await response.text();
-      
-      // Cheerioでパース
       const $ = cheerio.load(html);
       
-      // ページ情報を抽出
-      const title = $('title').text() || $('h1').first().text() || '';
+      // メタデータ抽出
+      const title = $('title').text().trim() || $('h1').first().text().trim() || 'Untitled';
       const description = $('meta[name="description"]').attr('content') || 
-                         $('meta[property="og:description"]').attr('content') || '';
+                         $('meta[property="og:description"]').attr('content') || 
+                         $('p').first().text().trim().substring(0, 200) || '';
       
-      // すべてのテキストコンテンツを取得
-      const allText = $('body').text().toLowerCase();
+      // テキストコンテンツを抽出
+      $('script, style, nav, footer, aside').remove(); // 不要な要素を削除
+      const textContent = $('body').text()
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 5000); // 分析用に最初の5000文字を使用
       
-      // 業界の判定
-      let detectedIndustry = 'general';
-      let maxScore = 0;
+      // 新しいcontent-analyzerを使用
+      const analysisResult = analyzeContent(textContent + ' ' + title + ' ' + description, url);
       
-      for (const [industry, keywords] of Object.entries(industryKeywords)) {
-        let score = 0;
-        for (const keyword of keywords) {
-          if (allText.includes(keyword.toLowerCase())) {
-            score++;
-          }
-        }
-        if (score > maxScore) {
-          maxScore = score;
-          detectedIndustry = industry;
-        }
-      }
+      // 結果の構築
+      const industry = analysisResult.industry?.industry || '';
+      const contentTypes = analysisResult.contentTypes.map(ct => ct.type);
+      const primaryContentType = contentTypes[0] || 'hero';
       
-      // コンテンツタイプの判定
-      let detectedContentType = 'hero'; // デフォルト
-      
-      // URLパスから判定
-      const path = urlObj.pathname.toLowerCase();
-      if (path === '/' || path === '/index.html') {
-        detectedContentType = 'hero';
-      } else {
-        // パターンマッチング
-        for (const [contentType, pattern] of Object.entries(contentTypePatterns)) {
-          let found = false;
-          
-          // キーワードチェック
-          for (const keyword of pattern.keywords) {
-            if (allText.includes(keyword)) {
-              found = true;
-              break;
-            }
-          }
-          
-          // DOM要素チェック
-          if (!found) {
-            for (const indicator of pattern.indicators) {
-              if ($(indicator).length > 0) {
-                found = true;
-                break;
-              }
-            }
-          }
-          
-          if (found) {
-            detectedContentType = contentType;
-            break;
-          }
-        }
-      }
-
-      // 画像生成用のプロンプト生成
+      // プロンプト生成
       const industryPrompts = {
         'technology': 'modern tech-focused design with digital elements, clean interfaces, abstract data visualization',
         'healthcare': 'clean medical environment, professional healthcare setting, trust and care atmosphere',
         'education': 'academic environment, learning atmosphere, knowledge and growth themes',
         'finance': 'professional financial setting, trust and security, modern business atmosphere',
-        'retail': 'attractive product display, shopping environment, consumer-friendly design',
+        'consulting': 'professional business environment, strategic thinking, corporate excellence',
         'restaurant': 'appetizing food presentation, warm dining atmosphere, culinary excellence',
+        'retail': 'attractive product display, shopping environment, consumer-friendly design',
+        'manufacturing': 'industrial precision, modern factory setting, quality production',
         'realestate': 'architectural beauty, property showcase, living space visualization',
         'beauty': 'elegant beauty concepts, luxury spa atmosphere, wellness and self-care',
         'travel': 'scenic destinations, adventure themes, vacation atmosphere',
-        'manufacturing': 'industrial precision, modern factory setting, quality production',
-        'consulting': 'professional business environment, strategic thinking, corporate excellence',
-        'legal': 'professional law office, justice themes, trust and integrity',
-        'nonprofit': 'community impact, helping hands, positive social change'
+        'legal': 'professional law office, justice themes, trust and integrity'
       };
 
       const contentTypePrompts = {
         'hero': 'impressive hero image, strong visual impact, brand identity showcase',
-        'product': 'product showcase, feature highlights, professional presentation',
         'about': 'company culture, team environment, organizational values',
-        'feature': 'benefit visualization, feature demonstration, advantage highlights',
+        'service': 'service presentation, professional service delivery, customer-focused',
+        'product': 'product showcase, feature highlights, professional presentation',
+        'team': 'professional team collaboration, expertise showcase, group dynamics',
         'testimonial': 'customer satisfaction, success stories, trust building',
-        'team': 'professional team photo, collaborative environment, expertise showcase',
-        'cta': 'action-oriented visual, engagement focus, conversion-driven design'
+        'news': 'news and updates presentation, information delivery, modern communication',
+        'contact': 'professional contact environment, accessibility, customer service',
+        'pricing': 'clear pricing presentation, value proposition, professional layout',
+        'faq': 'helpful information delivery, user support, clear communication'
       };
 
-      const basePrompt = industryPrompts[detectedIndustry] || industryPrompts['general'];
-      const contentPrompt = contentTypePrompts[detectedContentType] || contentTypePrompts['hero'];
+      const basePrompt = industryPrompts[industry] || 'professional business environment, clean modern design';
+      const contentPrompt = contentTypePrompts[primaryContentType] || contentTypePrompts['hero'];
       
       const suggestedPrompt = `${basePrompt}, ${contentPrompt}, professional Japanese business style, high quality, modern design`;
 
-      
       return {
         success: true,
         content: {
           title: title.substring(0, 100),
           description: description.substring(0, 200),
-          main_content: allText.substring(0, 500) + '...'
+          main_content: textContent.substring(0, 500) + (textContent.length > 500 ? '...' : '')
         },
         suggested_prompt: suggestedPrompt,
-        industry: detectedIndustry,
-        content_type: detectedContentType,
+        industry: industry,
+        content_type: primaryContentType,
+        detected_content_types: contentTypes, // 複数のコンテンツタイプ
+        analysis: {
+          industry_confidence: analysisResult.industry?.confidence || 'low',
+          content_types_detected: analysisResult.contentTypes,
+          analysis_method: 'advanced_content_analysis'
+        },
         style_suggestions: {
           style_keywords: ['professional', 'clean', 'modern', 'trustworthy'],
           color_palette: ['blue', 'white', 'gray'],
@@ -235,8 +152,8 @@ async function analyzeUrl(url) {
         analysis_metadata: {
           url: url,
           analyzed_at: new Date().toISOString(),
-          method: 'content_analysis',
-          confidence_score: maxScore > 3 ? 'high' : maxScore > 1 ? 'medium' : 'low'
+          method: 'enhanced_ai_analysis',
+          confidence_score: analysisResult.industry?.confidence || 'low'
         }
       };
 
@@ -309,14 +226,11 @@ module.exports = async function handler(req, res) {
     if (result.success) {
       return sendSuccessResponse(res, result);
     } else {
-      return sendErrorResponse(res, 400, result.error || '解析エラー');
+      return sendErrorResponse(res, 400, result.error || '解析エラー', result.details);
     }
 
   } catch (error) {
     logger.error('API handler error:', error);
-    
-    // 確実にJSONレスポンスを返す
-    res.setHeader('Content-Type', 'application/json');
     return sendErrorResponse(res, 500, `サーバーエラー: ${error.message || 'サーバー側でエラーが発生しました。しばらくしてから再度お試しください。'}`);
   }
 }
