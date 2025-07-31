@@ -1,4 +1,4 @@
-const { validatePrompt } = require('../utils/validation');
+const { validateGenerateRequest } = require('../utils/input-validator');
 const { translateInstruction, translateInstructions } = require('../utils/japanese-to-english');
 const {
   enhancePromptForJapan,
@@ -8,34 +8,54 @@ const {
   getResolution
 } = require('../utils/image-generators');
 const logger = require('../utils/logger');
+
+// レート制限ミドルウェア
+const rateLimitMiddleware = createRateLimitMiddleware('generate/batch');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
+const { createRateLimitMiddleware } = require('../utils/rate-limiter');
 
 
 module.exports = async function handler(req, res) {
-  
-  // Enable CORS
-  setCorsHeaders(res);
+  // CORS設定（セキュア）
+  if (!setCorsHeaders(res, req)) {
+    return sendErrorResponse(res, 403, 'CORS policy violation');
+  }
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
     return;
   }
 
+  if (req.method !== 'POST') {
+    return sendErrorResponse(res, 405, 'Method not allowed');
+  }
+
+  // レート制限チェック
+  return new Promise((resolve, reject) => {
+    rateLimitMiddleware(req, res, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(batchGenerateImages(req, res));
+      }
+    });
+  });
+};
+
+async function batchGenerateImages(req, res) {
   // apiToUseをtryの外で定義
   let apiToUse = 'unknown';
 
   // 全体のエラーハンドリング
   try {
-
-  if (req.method === 'POST') {
     
-    const { prompt, count = 1, context = {}, api: selectedApi = 'auto', additionalInstructions = [] } = req.body || {};
-    
-    // プロンプトの検証
-    const promptValidation = validatePrompt(prompt);
-    if (!promptValidation.valid) {
-      return sendErrorResponse(res, 400, promptValidation.error);
+    // 入力検証（包括的）
+    const validation = validateGenerateRequest(req.body);
+    if (!validation.valid) {
+      return sendErrorResponse(res, 400, validation.error);
     }
+
+    const { prompt, count, context, api: selectedApi, additionalInstructions } = validation.sanitized;
     
     // 日本語の追加指示を英語に変換
     const translatedInstructions = translateInstructions(additionalInstructions);
@@ -46,9 +66,7 @@ module.exports = async function handler(req, res) {
       combinedPrompt = `${prompt}, ${translatedInstructions.join(', ')}`;
     }
 
-    if (count > 8) {
-      return sendErrorResponse(res, 400, '生成枚数は8枚までです');
-    }
+    // 生成枚数の検証は input-validator で実施済み
 
     // API選択ロジック（環境変数ベース）
     apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
@@ -140,10 +158,6 @@ module.exports = async function handler(req, res) {
         additional_instructions_applied: translatedInstructions.length > 0
       }
     });
-  }
-
-  res.setHeader('Content-Type', 'application/json');
-  return sendErrorResponse(res, 405, 'Method not allowed');
   
   } catch (error) {
     logger.error('Batch generate API error:', error);

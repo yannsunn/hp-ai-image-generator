@@ -1,22 +1,34 @@
 // API設定
 const config = {
-  // CORS設定
+  // CORS設定（セキュア）
   cors: {
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: function(origin, callback) {
+      // 開発環境では全てのoriginを許可
+      if (process.env.NODE_ENV === 'development') {
+        return callback(null, true);
+      }
+      
+      // 本番環境では明示的に許可されたoriginのみ
+      const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').filter(Boolean);
+      
+      // originが未定義（サーバー間通信）またはallowedOriginsに含まれる場合のみ許可
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS policy violation: Origin not allowed'));
+      }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    headers: [
-      'X-CSRF-Token',
-      'X-Requested-With',
-      'Accept',
-      'Accept-Version',
-      'Content-Length',
-      'Content-MD5',
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: [
       'Content-Type',
-      'Date',
-      'X-Api-Version',
+      'Accept',
+      'X-Requested-With',
       'X-User-Id'
-    ]
+    ],
+    exposedHeaders: ['X-Total-Count'],
+    maxAge: 86400, // 24時間
+    optionsSuccessStatus: 200
   },
 
   // API料金設定（USD）

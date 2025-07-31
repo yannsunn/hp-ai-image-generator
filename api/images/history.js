@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
       
       // 画像データを取得
       const images = [];
-      for (const imageId of imageIds.slice(offset, offset + limit)) {
+      for (const imageId of imageIds.slice(validOffset, validOffset + validLimit)) {
         const imageData = await kv.get(`image:${imageId}`);
         if (imageData) {
           images.push(imageData);
@@ -41,12 +41,12 @@ module.exports = async function handler(req, res) {
       return sendSuccessResponse(res, {
         images: images,
         total: imageIds.length,
-        limit: parseInt(limit),
-        offset: parseInt(offset)
+        limit: validLimit,
+        offset: validOffset
       });
     }
 
-    return sendErrorResponse(res, 405, 'Method not allowed');
+    // Method not allowedは上位のhandlerで処理済み
     
   } catch (error) {
     logger.error('Get history error:', error);

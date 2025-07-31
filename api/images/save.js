@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
       });
     }
 
-    return sendErrorResponse(res, 405, 'Method not allowed');
+    // Method not allowedは上位のhandlerで処理済み
     
   } catch (error) {
     logger.error('Save image error:', error);

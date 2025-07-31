@@ -350,12 +350,12 @@ module.exports = async function handler(req, res) {
     
     // 詳細解析の場合
     if (detailed) {
-      const result = await analyzeSite(url);
+      const result = await analyzeSite(validatedUrl);
       
       return sendSuccessResponse(res, result);
     } else {
-      // 簡敩解析（既存の処理）
-      const pageData = await analyzePage(url);
+      // 簡略解析（既存の処理）
+      const pageData = await analyzePage(validatedUrl);
       const analysis = analyzeSiteData([pageData]);
       
       return sendSuccessResponse(res, analysis);

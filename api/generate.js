@@ -1,4 +1,3 @@
-const { validatePrompt } = require('./utils/validation');
 const { translateInstruction, translateInstructions } = require('./utils/japanese-to-english');
 const {
   enhancePromptForJapan,
@@ -9,11 +8,18 @@ const {
 } = require('./utils/image-generators');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
+const { validateGenerateRequest } = require('./utils/input-validator');
+const { createRateLimitMiddleware } = require('./utils/rate-limiter');
 
+
+// レート制限ミドルウェア
+const rateLimitMiddleware = createRateLimitMiddleware('generate');
 
 module.exports = async function handler(req, res) {
-  // Enable CORS
-  setCorsHeaders(res);
+  // CORS設定（セキュア）
+  if (!setCorsHeaders(res, req)) {
+    return sendErrorResponse(res, 403, 'CORS policy violation');
+  }
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -24,14 +30,28 @@ module.exports = async function handler(req, res) {
     return sendErrorResponse(res, 405, 'Method not allowed');
   }
 
+  // レート制限チェック
+  return new Promise((resolve, reject) => {
+    rateLimitMiddleware(req, res, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(generateImage(req, res));
+      }
+    });
+  });
+};
+
+async function generateImage(req, res) {
+
   try {
-    const { prompt, context = {}, api: selectedApi = 'auto', additionalInstructions = [] } = req.body || {};
-    
-    // プロンプトの検証
-    const promptValidation = validatePrompt(prompt);
-    if (!promptValidation.valid) {
-      return sendErrorResponse(res, 400, promptValidation.error);
+    // 入力検証（包括的）
+    const validation = validateGenerateRequest(req.body);
+    if (!validation.valid) {
+      return sendErrorResponse(res, 400, validation.error);
     }
+
+    const { prompt, context, api: selectedApi, additionalInstructions } = validation.sanitized;
     
     // 日本語の追加指示を英語に変換
     const translatedInstructions = translateInstructions(additionalInstructions);

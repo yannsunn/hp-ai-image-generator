@@ -2,7 +2,12 @@ const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
+const { validateUrl } = require('./utils/input-validator');
+const { createRateLimitMiddleware } = require('./utils/rate-limiter');
 const { analyzeContent } = require('./utils/content-analyzer');
+
+// レート制限ミドルウェア
+const rateLimitMiddleware = createRateLimitMiddleware('analyze-url');
 
 // URLの安全性検証
 function isValidUrl(url) {
@@ -201,9 +206,10 @@ async function analyzeUrl(url) {
 }
 
 module.exports = async function handler(req, res) {
-  
-  // Enable CORS
-  setCorsHeaders(res);
+  // CORS設定（セキュア）
+  if (!setCorsHeaders(res, req)) {
+    return sendErrorResponse(res, 403, 'CORS policy violation');
+  }
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -214,14 +220,31 @@ module.exports = async function handler(req, res) {
     return sendErrorResponse(res, 405, 'Method not allowed');
   }
 
+  // レート制限チェック
+  return new Promise((resolve, reject) => {
+    rateLimitMiddleware(req, res, (err) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(analyzeUrlHandler(req, res));
+      }
+    });
+  });
+};
+
+async function analyzeUrlHandler(req, res) {
   try {
     const { url } = req.body;
     
-    if (!url) {
-      return sendErrorResponse(res, 400, 'URLが指定されていません。URLを入力してください');
+    // 入力検証（包括的）
+    const urlValidation = validateUrl(url);
+    if (!urlValidation.valid) {
+      return sendErrorResponse(res, 400, urlValidation.error);
     }
 
-    const result = await analyzeUrl(url);
+    const validatedUrl = urlValidation.sanitized;
+
+    const result = await analyzeUrl(validatedUrl);
     
     if (result.success) {
       return sendSuccessResponse(res, result);
