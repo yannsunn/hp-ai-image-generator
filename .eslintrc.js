@@ -13,7 +13,10 @@ module.exports = {
   ],
   parserOptions: {
     ecmaVersion: 'latest',
-    sourceType: 'module'
+    sourceType: 'module',
+    ecmaFeatures: {
+      jsx: true
+    }
   },
   rules: {
     // エラーレベルの設定
@@ -49,6 +52,26 @@ module.exports = {
       rules: {
         'no-console': 'off' // テストファイルではconsole.logを許可
       }
+    },
+    {
+      files: ['frontend/**/*.jsx', '**/*.jsx'],
+      rules: {
+        'no-undef': 'off' // JSXファイルではReactやimport.metaを許可
+      }
+    },
+    {
+      files: ['frontend/dist/**/*', 'frontend/node_modules/**/*'],
+      rules: {
+        // ビルド生成物とnode_modulesは除外
+      }
     }
+  ],
+  ignorePatterns: [
+    'frontend/dist/',
+    'frontend/node_modules/',
+    'node_modules/',
+    '*.min.js',
+    'build/',
+    'coverage/'
   ]
 };

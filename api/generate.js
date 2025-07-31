@@ -9,11 +9,7 @@ const {
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 const { validateGenerateRequest } = require('./utils/input-validator');
-const { createRateLimitMiddleware } = require('./utils/rate-limiter');
-
-
-// レート制限ミドルウェア
-const rateLimitMiddleware = createRateLimitMiddleware('generate');
+const { rateLimiter } = require('./utils/rate-limiter');
 
 module.exports = async function handler(req, res) {
   // CORS設定（セキュア）
@@ -31,15 +27,21 @@ module.exports = async function handler(req, res) {
   }
 
   // レート制限チェック
-  return new Promise((resolve, reject) => {
-    rateLimitMiddleware(req, res, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(generateImage(req, res));
-      }
-    });
-  });
+  const rateLimitResult = rateLimiter.checkApiLimit(req, 'generate');
+  if (!rateLimitResult.allowed) {
+    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
+    res.setHeader('Retry-After', retryAfter);
+    return sendErrorResponse(res, 429, 'レート制限に達しました', 
+      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
+  }
+
+  try {
+    // メイン処理を実行
+    return await generateImage(req, res);
+  } catch (error) {
+    logger.error('Generate API error:', error);
+    return sendErrorResponse(res, 500, error.message || '画像生成に失敗しました');
+  }
 };
 
 async function generateImage(req, res) {
