@@ -6,24 +6,38 @@ module.exports = {
     jest: true
   },
   extends: [
-    'eslint:recommended'
+    'eslint:recommended',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:@typescript-eslint/recommended-requiring-type-checking'
   ],
   plugins: [
-    'jest'
+    'jest',
+    '@typescript-eslint'
   ],
+  parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
     ecmaFeatures: {
       jsx: true
-    }
+    },
+    project: ['./tsconfig.json', './frontend/tsconfig.json', './api/tsconfig.json'],
+    tsconfigRootDir: __dirname
   },
   rules: {
     // エラーレベルの設定
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'warn',
-    'no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    'no-unused-vars': 'off',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
     'no-undef': 'error',
+    
+    // TypeScript固有のルール
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-non-null-assertion': 'warn',
+    '@typescript-eslint/strict-boolean-expressions': 'off',
     
     // セキュリティ関連
     'no-eval': 'error',
@@ -45,22 +59,33 @@ module.exports = {
   },
   overrides: [
     {
-      files: ['tests/**/*.js', '**/*.test.js'],
+      files: ['*.js'],
+      rules: {
+        '@typescript-eslint/no-var-requires': 'off'
+      }
+    },
+    {
+      files: ['tests/**/*.js', '**/*.test.js', 'tests/**/*.ts', '**/*.test.ts'],
       env: {
         jest: true
       },
       rules: {
-        'no-console': 'off' // テストファイルではconsole.logを許可
+        'no-console': 'off', // テストファイルではconsole.logを許可
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off'
       }
     },
     {
-      files: ['frontend/**/*.jsx', '**/*.jsx'],
+      files: ['frontend/**/*.jsx', 'frontend/**/*.tsx', '**/*.jsx', '**/*.tsx'],
       rules: {
-        'no-undef': 'off' // JSXファイルではReactやimport.metaを許可
+        'no-undef': 'off', // JSXファイルではReactやimport.metaを許可
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off'
       }
     },
     {
-      files: ['frontend/dist/**/*', 'frontend/node_modules/**/*'],
+      files: ['frontend/dist/**/*', 'frontend/node_modules/**/*', 'dist/**/*'],
       rules: {
         // ビルド生成物とnode_modulesは除外
       }
@@ -72,6 +97,8 @@ module.exports = {
     'node_modules/',
     '*.min.js',
     'build/',
-    'coverage/'
+    'coverage/',
+    'dist/',
+    '*.d.ts'
   ]
 };
