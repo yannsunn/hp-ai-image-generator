@@ -1,5 +1,4 @@
 {
-  "extends": "../tsconfig.json",
   "compilerOptions": {
     "outDir": "../dist/api",
     "rootDir": ".",
@@ -9,7 +8,20 @@
     "lib": ["ES2020"],
     "allowJs": true,
     "declaration": false,
+    "declarationMap": false,
     "sourceMap": false,
+    "noEmitOnError": false,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "exactOptionalPropertyTypes": false,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
     "paths": {
       "@utils/*": ["utils/*"],
       "@config/*": ["config/*"],
