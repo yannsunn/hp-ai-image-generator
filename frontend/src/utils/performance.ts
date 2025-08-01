@@ -1,6 +1,6 @@
 // Web Vitals監視
-export class PerformanceObserver {
-  private observer: PerformanceObserver | null = null;
+export class WebVitalsObserver {
+  private observers: PerformanceObserver[] = [];
 
   start(): void {
     if ('PerformanceObserver' in window) {
@@ -20,12 +20,13 @@ export class PerformanceObserver {
 
   private observeLCP(): void {
     try {
-      const observer = new window.PerformanceObserver((list) => {
+      const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1] as any;
         console.log('LCP:', lastEntry.renderTime || lastEntry.loadTime);
       });
       observer.observe({ entryTypes: ['largest-contentful-paint'] });
+      this.observers.push(observer);
     } catch (e) {
       console.error('LCP observation failed:', e);
     }
@@ -33,13 +34,14 @@ export class PerformanceObserver {
 
   private observeFID(): void {
     try {
-      const observer = new window.PerformanceObserver((list) => {
+      const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           const delay = (entry as any).processingStart - entry.startTime;
           console.log('FID:', delay);
         }
       });
       observer.observe({ entryTypes: ['first-input'] });
+      this.observers.push(observer);
     } catch (e) {
       console.error('FID observation failed:', e);
     }
@@ -50,7 +52,7 @@ export class PerformanceObserver {
     let clsEntries: any[] = [];
     
     try {
-      const observer = new window.PerformanceObserver((list) => {
+      const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (!(entry as any).hadRecentInput) {
             clsEntries.push(entry);
@@ -59,6 +61,7 @@ export class PerformanceObserver {
         }
       });
       observer.observe({ entryTypes: ['layout-shift'] });
+      this.observers.push(observer);
     } catch (e) {
       console.error('CLS observation failed:', e);
     }
@@ -75,10 +78,10 @@ export class PerformanceObserver {
   }
 
   stop(): void {
-    if (this.observer) {
-      this.observer.disconnect();
-      this.observer = null;
-    }
+    this.observers.forEach(observer => {
+      observer.disconnect();
+    });
+    this.observers = [];
   }
 }
 
