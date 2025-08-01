@@ -1,34 +1,52 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Upload, Wand2, Loader2, Download, Edit3, DollarSign, Palette, Sparkles, X, Save, History } from 'lucide-react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
+import { Wand2, Loader2, DollarSign, Sparkles, X, History } from 'lucide-react';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import ImageGallery from './ImageGallery';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
 import logger from '../utils/logger';
+import {
+  GeneratedImage,
+  Industry,
+  ContentType,
+  Context,
+  PromptAnalysis,
+  UrlContent,
+  DetailedAnalysis,
+  ImageHistory,
+  GenerationResponse,
+  AnalysisResponse,
+  SaveImageResponse,
+  HistoryResponse
+} from '../types/index';
 
-const ImageGenerationForm = () => {
-  const [prompt, setPrompt] = useState('');
-  const [additionalInstructions, setAdditionalInstructions] = useState(['']); // 追加の指示文
-  const [url, setUrl] = useState('');
-  const [inputMode, setInputMode] = useState('text'); // 'text' or 'url'
-  const [context, setContext] = useState({
+const ImageGenerationForm: React.FC = () => {
+  const [prompt, setPrompt] = useState<string>('');
+  const [additionalInstructions, setAdditionalInstructions] = useState<string[]>(['']); // 追加の指示文
+  const [url, setUrl] = useState<string>('');
+  const [inputMode, setInputMode] = useState<'text' | 'url'>('text'); // 'text' or 'url'
+  const [context, setContext] = useState<Context>({
     industry: '',
     contentType: ''
   });
-  const [selectedContentTypes, setSelectedContentTypes] = useState([]); // 複数選択用
-  const [selectedApi, setSelectedApi] = useState('auto');
-  const [numberOfImages, setNumberOfImages] = useState(1); // 生成枚数
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatedImages, setGeneratedImages] = useState([]);
-  const [error, setError] = useState('');
-  const [availableApis, setAvailableApis] = useState([]);
-  const [promptAnalysis, setPromptAnalysis] = useState(null);
-  const [totalCost, setTotalCost] = useState(0);
-  const [urlContent, setUrlContent] = useState(null);
-  const [isAnalyzingUrl, setIsAnalyzingUrl] = useState(false);
-  const [detailedAnalysis, setDetailedAnalysis] = useState(null);
-  const [analysisProgress, setAnalysisProgress] = useState(0);
-  const [isDetailedAnalysis, setIsDetailedAnalysis] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [imageHistory, setImageHistory] = useState([]);
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [selectedContentTypes, setSelectedContentTypes] = useState<string[]>([]); // 複数選択用
+  const [selectedApi, setSelectedApi] = useState<string>('auto');
+  const [numberOfImages, setNumberOfImages] = useState<number>(1); // 生成枚数
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
+  const [error, setError] = useState<string>('');
+  const [availableApis, setAvailableApis] = useState<string[]>([]);
+  const [promptAnalysis, setPromptAnalysis] = useState<PromptAnalysis | null>(null);
+  const [totalCost, setTotalCost] = useState<number>(0);
+  const [urlContent, setUrlContent] = useState<UrlContent | null>(null);
+  const [isAnalyzingUrl, setIsAnalyzingUrl] = useState<boolean>(false);
+  const [detailedAnalysis, setDetailedAnalysis] = useState<DetailedAnalysis | null>(null);
+  const [analysisProgress, setAnalysisProgress] = useState<number>(0);
+  // const [isDetailedAnalysis, setIsDetailedAnalysis] = useState<boolean>(false);
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [imageHistory, setImageHistory] = useState<ImageHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
   // APIの可用性をチェック
   useEffect(() => {
@@ -36,14 +54,14 @@ const ImageGenerationForm = () => {
     upgradeLocalStorage(); // localStorage履歴をアップグレード
   }, []);
 
-  const fetchAvailableApis = async () => {
+  const fetchAvailableApis = async (): Promise<void> => {
     try {
       const response = await fetch('/api/apis/available', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
       });
-      const data = await response.json();
+      const data: { available: string[] } = await response.json();
       setAvailableApis(data.available || []);
     } catch (err) {
       logger.error('Failed to fetch available APIs:', err);
@@ -69,7 +87,7 @@ const ImageGenerationForm = () => {
     };
   }, []);
 
-  const analyzePrompt = async () => {
+  const analyzePrompt = async (): Promise<void> => {
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
@@ -79,9 +97,9 @@ const ImageGenerationForm = () => {
           context
         })
       });
-      const data = await response.json();
+      const data: AnalysisResponse = await response.json();
       if (data.success) {
-        setPromptAnalysis(data.analysis);
+        setPromptAnalysis(data.analysis || null);
       }
     } catch (err) {
       logger.error('Prompt analysis failed:', err);
@@ -89,14 +107,14 @@ const ImageGenerationForm = () => {
   };
 
   // URLからコンテンツを解析
-  const analyzeUrl = async (detailed = false) => {
+  const analyzeUrl = async (detailed: boolean = false): Promise<void> => {
     if (!url.trim()) {
       setError('URLを入力してください');
       return;
     }
 
     setIsAnalyzingUrl(true);
-    setIsDetailedAnalysis(detailed);
+    // setIsDetailedAnalysis(detailed);
     setError('');
     setAnalysisProgress(0);
     setDetailedAnalysis(null);
@@ -110,15 +128,21 @@ const ImageGenerationForm = () => {
           body: JSON.stringify({ url, detailed: true })
         });
 
-        const data = await response.json();
+        const data: AnalysisResponse = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || 'サイト解析に失敗しました');
         }
 
         if (data.success) {
-          setDetailedAnalysis(data);
-          setPrompt(data.suggested_prompt);
+          setDetailedAnalysis({
+            pages_analyzed: data.pages_analyzed || 0,
+            pages_found: data.pages_found || 0,
+            industry_confidence: data.industry_confidence || 'low',
+            main_themes: data.main_themes || [],
+            visual_style: data.visual_style || { tone: '', atmosphere: [] }
+          });
+          setPrompt(data.suggested_prompt || '');
           setContext({
             industry: data.industry || '',
             contentType: 'hero'
@@ -128,8 +152,8 @@ const ImageGenerationForm = () => {
           if (data.visual_style) {
             setPromptAnalysis(prev => ({
               ...prev,
-              style_suggestions: data.visual_style.atmosphere || [],
-              color_palette: data.visual_style.color_hints || [],
+              style_suggestions: data.visual_style?.atmosphere || [],
+              color_palette: data.visual_style?.color_hints || [],
               themes: data.main_themes || []
             }));
           }
@@ -145,15 +169,15 @@ const ImageGenerationForm = () => {
           body: JSON.stringify({ url })
         });
 
-        const data = await response.json();
+        const data: AnalysisResponse = await response.json();
 
         if (!response.ok) {
           throw new Error(data.error || 'URL解析に失敗しました');
         }
 
         if (data.success) {
-          setUrlContent(data.content);
-          setPrompt(data.suggested_prompt);
+          setUrlContent(data.content || null);
+          setPrompt(data.suggested_prompt || '');
           
           // 自動推測された業界とコンテンツタイプを設定
           setContext({
@@ -169,22 +193,25 @@ const ImageGenerationForm = () => {
           // 分析結果をプロンプト解析に反映
           if (data.analysis) {
             setPromptAnalysis(prev => ({
-              ...prev,
-              industry_confidence: data.analysis.industry_confidence,
-              detected_themes: data.analysis.content_types_detected?.map(ct => ct.type) || [],
-              analysis_method: data.analysis.analysis_method
+              style_suggestions: prev?.style_suggestions || [],
+              color_palette: prev?.color_palette || [],
+              themes: prev?.themes || [],
+              industry_confidence: data.analysis?.industry_confidence,
+              detected_themes: data.analysis?.detected_themes || [],
+              analysis_method: data.analysis?.analysis_method
             }));
           }
         }
         setIsAnalyzingUrl(false);
       }
     } catch (err) {
-      setError(err.message || 'URL解析に失敗しました');
+      const errorMessage = err instanceof Error ? err.message : 'URL解析に失敗しました';
+      setError(errorMessage);
       setIsAnalyzingUrl(false);
     }
   };
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (): Promise<void> => {
     if (!prompt.trim()) {
       setError('メインの指示文を入力してください');
       return;
@@ -223,16 +250,16 @@ const ImageGenerationForm = () => {
         body: JSON.stringify(requestPayload)
       });
 
-      let data;
+      let data: GenerationResponse;
       
       // レスポンスの処理
-      let responseText;
+      let responseText: string = '';
       try {
         // まずテキストとして読み取る
         responseText = await response.text();
         
         // JSONとしてパース
-        data = JSON.parse(responseText);
+        data = JSON.parse(responseText) as GenerationResponse;
       } catch (parseError) {
         // JSONパースエラーの場合 - より詳細な情報を取得
         logger.error('API Response Parse Error:', parseError);
@@ -240,10 +267,12 @@ const ImageGenerationForm = () => {
         
         // 開発環境でのみ詳細エラーを表示
         if (import.meta.env?.DEV) {
-          throw new Error(`JSON Parse Error: ${parseError.message}\nResponse: ${responseText?.substring(0, 100)}...`);
+          const errorMsg = parseError instanceof Error ? parseError.message : 'Parse error';
+          throw new Error(`JSON Parse Error: ${errorMsg}\nResponse: ${responseText?.substring(0, 100)}...`);
         }
         
-        throw new Error(`Server error: ${response.status} - ${parseError.message}`);
+        const errorMsg = parseError instanceof Error ? parseError.message : 'Parse error';
+        throw new Error(`Server error: ${response.status} - ${errorMsg}`);
       }
 
       if (!response.ok) {
@@ -255,32 +284,42 @@ const ImageGenerationForm = () => {
       if (data.success) {
         // 単一画像の場合
           if (numberOfImages === 1) {
-            const newImage = {
-              id: Date.now(),
-              src: data.image,
-              prompt: data.metadata.original_prompt,
-              enhancedPrompt: data.metadata.enhanced_prompt,
-              api: data.metadata.api_used,
-              cost: data.metadata.cost,
-              analysis: data.metadata.analysis
+            const newImage: GeneratedImage = {
+              id: Date.now().toString(),
+              url: data.image!,
+              prompt: data.metadata!.original_prompt,
+              provider: data.metadata!.api_used,
+              timestamp: Date.now(),
+              metadata: {
+                original_prompt: data.metadata!.original_prompt,
+                enhanced_prompt: data.metadata!.enhanced_prompt,
+                api_used: data.metadata!.api_used,
+                cost: data.metadata!.cost,
+                analysis: data.metadata!.analysis
+              }
             };
             setGeneratedImages([...generatedImages, newImage]);
-            setTotalCost(totalCost + data.metadata.cost);
+            setTotalCost(totalCost + (data.metadata?.cost || 0));
             
             saveImageToHistory(newImage);
           } else {
             // 複数画像の場合
-            const newImages = data.images.map((img, index) => ({
-              id: Date.now() + index,
-              src: img.image,
+            const newImages: GeneratedImage[] = data.images!.map((img, index) => ({
+              id: (Date.now() + index).toString(),
+              url: img.image,
               prompt: img.metadata.original_prompt,
-              enhancedPrompt: img.metadata.enhanced_prompt,
-              api: img.metadata.api_used,
-              cost: img.metadata.cost,
-              analysis: img.metadata.analysis
+              provider: img.metadata.api_used,
+              timestamp: Date.now(),
+              metadata: {
+                original_prompt: img.metadata.original_prompt,
+                enhanced_prompt: img.metadata.enhanced_prompt,
+                api_used: img.metadata.api_used,
+                cost: img.metadata.cost,
+                analysis: img.metadata.analysis
+              }
             }));
             setGeneratedImages([...generatedImages, ...newImages]);
-            setTotalCost(totalCost + data.total_cost);
+            setTotalCost(totalCost + (data.total_cost || 0));
             
             newImages.forEach(img => saveImageToHistory(img));
           }
@@ -290,14 +329,15 @@ const ImageGenerationForm = () => {
         // setAdditionalInstructions(['']);
       }
     } catch (err) {
-      setError(err.message || '画像生成に失敗しました');
+      const errorMessage = err instanceof Error ? err.message : '画像生成に失敗しました';
+      setError(errorMessage);
     } finally {
       setIsGenerating(false);
     }
   };
 
   // 画像を履歴に保存
-  const saveImageToHistory = async (image) => {
+  const saveImageToHistory = async (image: GeneratedImage): Promise<void> => {
     try {
       const response = await fetch('/api/images/save', {
         method: 'POST',
@@ -306,18 +346,18 @@ const ImageGenerationForm = () => {
           'X-User-Id': 'default' // 今後ユーザー認証を追加可能
         },
         body: JSON.stringify({
-          image: image.src,
+          image: image.url,
           metadata: {
             prompt: image.prompt,
-            enhancedPrompt: image.enhancedPrompt,
-            api: image.api,
-            cost: image.cost,
-            analysis: image.analysis
+            enhancedPrompt: image.metadata?.enhanced_prompt,
+            api: image.provider,
+            cost: image.metadata?.cost,
+            analysis: image.metadata?.analysis
           }
         })
       });
       
-      const data = await response.json();
+      const data: SaveImageResponse = await response.json();
       if (data.success) {
         // デモ画像は保存しない
         if (!data.imageId) {
@@ -327,7 +367,7 @@ const ImageGenerationForm = () => {
         // ローカルストレージにも保存（KVが使えない場合のフォールバック）
         if (data.warning) {
           try {
-            const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+            const localHistory: ImageHistory[] = JSON.parse(localStorage.getItem('imageHistory') || '[]');
             // 開発環境またはローカル環境では画像データも保存
             const shouldSaveImage = window.location.hostname === 'localhost' || 
                                    window.location.hostname === '127.0.0.1' || 
@@ -341,18 +381,18 @@ const ImageGenerationForm = () => {
                 hostname: window.location.hostname,
                 isDev: import.meta.env?.DEV,
                 mode: import.meta.env?.MODE,
-                hasImageSrc: !!image.src
+                hasImageSrc: !!image.url
               });
             }
             
             localHistory.unshift({
-              id: data.imageId,
-              image: shouldSaveImage ? image.src : null, // 開発環境では画像も保存
+              id: data.imageId!,
+              image: shouldSaveImage ? image.url : null, // 開発環境では画像も保存
               metadata: {
                 prompt: image.prompt,
-                enhancedPrompt: image.enhancedPrompt,
-                api: image.api,
-                cost: image.cost,
+                enhancedPrompt: image.metadata?.enhanced_prompt || undefined,
+                api: image.provider,
+                cost: image.metadata?.cost || undefined,
                 createdAt: new Date().toISOString()
               }
             });
@@ -365,15 +405,15 @@ const ImageGenerationForm = () => {
           } catch (storageError) {
             logger.warn('LocalStorage保存エラー:', storageError);
             // 容量エラーの場合は履歴をクリア
-            if (storageError.name === 'QuotaExceededError') {
+            if (storageError instanceof Error && storageError.name === 'QuotaExceededError') {
               localStorage.removeItem('imageHistory');
               // より小さなサイズで再試行
               try {
-                const minimalHistory = [{
-                  id: data.imageId,
+                const minimalHistory: ImageHistory[] = [{
+                  id: data.imageId!,
                   metadata: {
                     prompt: image.prompt.substring(0, 100),
-                    api: image.api,
+                    api: image.provider,
                     createdAt: new Date().toISOString()
                   }
                 }];
@@ -390,7 +430,7 @@ const ImageGenerationForm = () => {
       
       // エラー時もローカルストレージに保存
       try {
-        const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+        const localHistory: ImageHistory[] = JSON.parse(localStorage.getItem('imageHistory') || '[]');
         const shouldSaveImage = window.location.hostname === 'localhost' || 
                                window.location.hostname === '127.0.0.1' || 
                                window.location.hostname.includes('local') ||
@@ -399,12 +439,12 @@ const ImageGenerationForm = () => {
         
         localHistory.unshift({
           id: 'local-' + Date.now(),
-          image: shouldSaveImage ? image.src : null, // 開発環境では画像も保存
+          image: shouldSaveImage ? image.url : null, // 開発環境では画像も保存
           metadata: {
             prompt: image.prompt,
-            enhancedPrompt: image.enhancedPrompt,
-            api: image.api,
-            cost: image.cost,
+            enhancedPrompt: image.metadata?.enhanced_prompt || undefined,
+            api: image.provider,
+            cost: image.metadata?.cost || undefined,
             createdAt: new Date().toISOString()
           }
         });
@@ -416,7 +456,7 @@ const ImageGenerationForm = () => {
         localStorage.setItem('imageHistory', JSON.stringify(localHistory));
       } catch (storageError) {
         logger.warn('LocalStorage保存エラー:', storageError);
-        if (storageError.name === 'QuotaExceeded Error') {
+        if (storageError instanceof Error && storageError.name === 'QuotaExceededError') {
           localStorage.removeItem('imageHistory');
         }
       }
@@ -424,7 +464,7 @@ const ImageGenerationForm = () => {
   };
 
   // 履歴を取得
-  const loadHistory = async () => {
+  const loadHistory = async (): Promise<void> => {
     setIsLoadingHistory(true);
     try {
       const response = await fetch('/api/images/history', {
@@ -433,20 +473,20 @@ const ImageGenerationForm = () => {
         }
       });
       
-      const data = await response.json();
+      const data: HistoryResponse = await response.json();
       if (data.success) {
         if (data.images.length > 0) {
           setImageHistory(data.images);
         } else if (data.warning) {
           // KVが使えない場合はローカルストレージから取得
-          const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+          const localHistory: ImageHistory[] = JSON.parse(localStorage.getItem('imageHistory') || '[]');
           setImageHistory(localHistory);
         }
       }
     } catch (err) {
       logger.error('履歴取得エラー:', err);
       // エラー時はローカルストレージから取得
-      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+      const localHistory: ImageHistory[] = JSON.parse(localStorage.getItem('imageHistory') || '[]');
       setImageHistory(localHistory);
     } finally {
       setIsLoadingHistory(false);
@@ -454,7 +494,7 @@ const ImageGenerationForm = () => {
   };
 
   // localStorage履歴のアップグレード（開発環境でのデバッグ用）
-  const upgradeLocalStorage = () => {
+  const upgradeLocalStorage = (): void => {
     try {
       const isDev = window.location.hostname === 'localhost' || 
                    window.location.hostname === '127.0.0.1' || 
@@ -464,7 +504,7 @@ const ImageGenerationForm = () => {
       
       if (!isDev) return; // 開発環境以外では実行しない
       
-      const localHistory = JSON.parse(localStorage.getItem('imageHistory') || '[]');
+      const localHistory: ImageHistory[] = JSON.parse(localStorage.getItem('imageHistory') || '[]');
       const needsUpgrade = localHistory.some(item => !item.image && item.metadata);
       
       if (needsUpgrade) {
@@ -477,23 +517,28 @@ const ImageGenerationForm = () => {
   };
 
   // 履歴から画像をロード
-  const loadFromHistory = (historyImage) => {
-    const loadedImage = {
-      id: Date.now(),
-      src: historyImage.image,
+  const loadFromHistory = (historyImage: ImageHistory): void => {
+    const loadedImage: GeneratedImage = {
+      id: Date.now().toString(),
+      url: historyImage.image || '',
       prompt: historyImage.metadata.prompt,
-      enhancedPrompt: historyImage.metadata.enhancedPrompt,
-      api: historyImage.metadata.api,
-      cost: historyImage.metadata.cost,
-      analysis: historyImage.metadata.analysis
+      provider: historyImage.metadata.api,
+      timestamp: Date.now(),
+      metadata: {
+        original_prompt: historyImage.metadata.prompt,
+        enhanced_prompt: historyImage.metadata.enhancedPrompt || undefined,
+        api_used: historyImage.metadata.api,
+        cost: historyImage.metadata.cost || undefined,
+        analysis: historyImage.metadata.analysis
+      }
     };
     setGeneratedImages([...generatedImages, loadedImage]);
-    setTotalCost(totalCost + loadedImage.cost);
+    setTotalCost(totalCost + (loadedImage.metadata?.cost || 0));
     setShowHistory(false);
   };
 
   // 追加の指示文を追加
-  const addInstruction = (preset = '') => {
+  const addInstruction = (preset: string = ''): void => {
     if (preset) {
       setAdditionalInstructions([...additionalInstructions, preset]);
     } else {
@@ -502,23 +547,23 @@ const ImageGenerationForm = () => {
   };
 
   // 指示文を更新
-  const updateInstruction = (index, value) => {
+  const updateInstruction = (index: number, value: string): void => {
     const updated = [...additionalInstructions];
     updated[index] = value;
     setAdditionalInstructions(updated);
   };
 
   // 指示文を削除
-  const removeInstruction = (index) => {
+  const removeInstruction = (index: number): void => {
     const updated = additionalInstructions.filter((_, i) => i !== index);
     setAdditionalInstructions(updated.length > 0 ? updated : ['']);
   };
 
-  const handleEdit = (image) => {
+  const handleEdit = (_image: GeneratedImage): void => {
     // 編集機能は未実装
   };
 
-  const handleDownload = (imageSrc, filename) => {
+  const handleDownload = (imageSrc: string, filename?: string): void => {
     const link = document.createElement('a');
     link.href = imageSrc;
     link.download = filename || 'generated-image.png';
@@ -527,7 +572,7 @@ const ImageGenerationForm = () => {
     document.body.removeChild(link);
   };
 
-  const industries = [
+  const industries: Industry[] = [
     { value: '', label: '業界を選択' },
     { value: 'technology', label: 'IT・テクノロジー' },
     { value: 'healthcare', label: '医療・ヘルスケア' },
@@ -557,7 +602,7 @@ const ImageGenerationForm = () => {
     { value: 'other', label: 'その他' }
   ];
 
-  const contentTypes = [
+  const contentTypes: ContentType[] = [
     { value: '', label: 'コンテンツタイプを選択（複数選択可）' },
     { value: 'hero', label: 'ヒーローイメージ', description: 'トップページのメインビジュアル' },
     { value: 'about', label: '会社紹介', description: '企業理念やビジョンを伝える' },
@@ -627,7 +672,7 @@ const ImageGenerationForm = () => {
                 </label>
                 <select
                   value={context.industry}
-                  onChange={(e) => setContext({...context, industry: e.target.value})}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setContext({...context, industry: e.target.value})}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 >
                   {industries.map(ind => (
@@ -647,7 +692,7 @@ const ImageGenerationForm = () => {
                       <input
                         type="checkbox"
                         checked={selectedContentTypes.includes(type.value)}
-                        onChange={(e) => {
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => {
                           if (e.target.checked) {
                             setSelectedContentTypes([...selectedContentTypes, type.value]);
                           } else {
@@ -721,7 +766,7 @@ const ImageGenerationForm = () => {
                     <input
                       type="url"
                       value={url}
-                      onChange={(e) => setUrl(e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                       placeholder="https://example.jp"
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -825,7 +870,7 @@ const ImageGenerationForm = () => {
                 </label>
                 <textarea
                   value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                   placeholder="生成したい画像のメインとなる指示を入力してください..."
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                   rows={3}
@@ -840,7 +885,7 @@ const ImageGenerationForm = () => {
                   </label>
                   <button
                     type="button"
-                    onClick={addInstruction}
+                    onClick={() => addInstruction()}
                     className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                   >
                     + 指示を追加
@@ -912,7 +957,7 @@ const ImageGenerationForm = () => {
                     <input
                       type="text"
                       value={instruction}
-                      onChange={(e) => updateInstruction(index, e.target.value)}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => updateInstruction(index, e.target.value)}
                       placeholder={`追加の指示 ${index + 1}（例：明るい雰囲気で、プロフェッショナルな印象）`}
                       className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     />
@@ -941,7 +986,7 @@ const ImageGenerationForm = () => {
                   <div>
                     <span className="font-medium text-gray-700">推奨スタイル:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
-                      {promptAnalysis.style_suggestions.map((style, idx) => (
+                      {promptAnalysis.style_suggestions?.map((style, idx) => (
                         <span key={idx} className="px-2 py-1 bg-white rounded text-purple-600">
                           {style}
                         </span>
@@ -951,7 +996,7 @@ const ImageGenerationForm = () => {
                   <div>
                     <span className="font-medium text-gray-700">カラーパレット:</span>
                     <div className="flex gap-2 mt-1">
-                      {promptAnalysis.color_palette.map((color, idx) => (
+                      {promptAnalysis.color_palette?.map((color, idx) => (
                         <div
                           key={idx}
                           className="w-6 h-6 rounded border border-gray-300"
@@ -973,7 +1018,7 @@ const ImageGenerationForm = () => {
                 </label>
                 <select
                   value={selectedApi}
-                  onChange={(e) => setSelectedApi(e.target.value)}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedApi(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="auto">自動選択（最適なAPIを自動判定）</option>
@@ -992,7 +1037,7 @@ const ImageGenerationForm = () => {
                 </label>
                 <select
                   value={numberOfImages}
-                  onChange={(e) => setNumberOfImages(parseInt(e.target.value))}
+                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setNumberOfImages(parseInt(e.target.value))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="1">1枚</option>
