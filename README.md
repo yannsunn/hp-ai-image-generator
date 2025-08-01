@@ -1,122 +1,231 @@
-# AI画像生成システム（HP制作用）
+# 🚀 HP AI Image Generator - ウルトラシンクシステム
 
-プロフェッショナルなホームページ用画像を生成するAIシステムです。
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-18.2-61dafb.svg)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.0-646cff.svg)](https://vitejs.dev/)
+[![CI/CD](https://github.com/yannsunn/hp-ai-image-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/yannsunn/hp-ai-image-generator/actions)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## 主な機能
+日本のホームページ制作に特化した、エンタープライズグレードのAI画像生成システム。TypeScript完全対応、最高レベルのセキュリティとパフォーマンスを実現。
 
-### 画像生成機能
-- **複数AI統合**: OpenAI (DALL-E 3)、Stability AI、Replicate (FLUX)
-- **自動API選択**: プロンプト内容に基づいて最適なAPIを自動選択
-- **バッチ生成**: 複数画像の並列生成
-- **コスト管理**: リアルタイムコスト表示
+## 🌟 主要機能
 
-### 画像編集機能
-- **自然言語編集**: 日本語での編集指示対応
-- **プリセット編集**: ワンクリックで適用可能な定型編集
-- **編集履歴**: 過去の編集内容の保存・復元
-- **バッチ編集**: 複数画像の一括処理
+### 🎨 AI画像生成
+- **マルチプロバイダー対応**: OpenAI DALL-E 3, Stability AI, Replicate
+- **日本語プロンプト最適化**: 自動翻訳と日本スタイル強化
+- **バッチ生成**: 複数画像の同時生成
+- **スマートキャッシング**: 高速レスポンスとコスト削減
 
-### コンテンツ解析
-- **業界別最適化**: 業界に応じたスタイル提案
-- **コンテンツタイプ認識**: ヒーロー画像、商品画像など
-- **プロンプト拡張**: 自動的な品質向上
+### 🔍 サイト解析
+- **URL自動解析**: コンテンツとデザイン要素の抽出
+- **業界自動判定**: 12業界カテゴリの自動識別
+- **コンテンツタイプ検出**: ヒーロー、チーム、サービスなど10種類
+- **プロンプト自動生成**: 解析結果に基づく最適化
 
-## 必要な環境設定
+### 🛡️ セキュリティ
+- **環境変数検証**: 起動時の自動チェック
+- **CSP (Content Security Policy)**: XSS攻撃防止
+- **レート制限**: DDoS攻撃対策
+- **入力サニタイゼーション**: SQLインジェクション/XSS防止
+- **Helmet.js統合**: 包括的なセキュリティヘッダー
 
-1. `.env.example`を`.env`にコピー
-2. 以下のAPIキーを設定：
+### ⚡ パフォーマンス
+- **Web Vitals監視**: LCP, FID, CLS追跡
+- **画像最適化**: WebP/AVIF自動選択
+- **遅延読み込み**: IntersectionObserver実装
+- **メモリキャッシュ**: 高速レスポンス
+- **リソースヒント**: preconnect/prefetch最適化
 
-### 必須APIキー
-- `OPENAI_API_KEY`: OpenAI APIキー（プロンプト最適化・画像生成）
-- `REPLICATE_API_TOKEN`: Replicate APIトークン（高品質画像生成）
+## 🏗️ アーキテクチャ
 
-### オプション設定
-- Vercel KV Storage（画像履歴保存用）
-  - `KV_URL`
-  - `KV_REST_API_URL`
-  - `KV_REST_API_TOKEN`
-  - `KV_REST_API_READ_ONLY_TOKEN`
+### 技術スタック
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + TypeScript
+- **API**: RESTful API with OpenAPI 3.0
+- **Deploy**: Vercel (Edge Functions対応)
+- **Monitoring**: Sentry + Custom Performance Metrics
 
-## インストール
+### プロジェクト構造
+```
+hp-ai-image-generator/
+├── api/                    # APIエンドポイント (TypeScript)
+│   ├── generate.ts        # 画像生成API
+│   ├── analyze-url.ts     # URL解析API
+│   ├── analyze-site.ts    # サイト解析API
+│   ├── middleware/        # Express ミドルウェア
+│   └── utils/            # ユーティリティ関数
+├── frontend/              # React フロントエンド
+│   ├── src/
+│   │   ├── components/   # UIコンポーネント (TSX)
+│   │   ├── types/       # TypeScript型定義
+│   │   └── utils/       # ユーティリティ関数
+│   └── dist/            # ビルド出力
+├── tests/                # テストスイート
+├── .github/              # GitHub Actions CI/CD
+└── types/               # グローバル型定義
+```
 
+## 🚀 クイックスタート
+
+### 必要条件
+- Node.js 18.x以上
+- npm 9.x以上
+- TypeScript 5.x
+
+### インストール
 ```bash
-# APIディレクトリ
-cd api
+# リポジトリをクローン
+git clone https://github.com/yannsunn/hp-ai-image-generator.git
+cd hp-ai-image-generator
+
+# 依存関係をインストール
 npm install
+cd frontend && npm install && cd ..
 
-# フロントエンド
-cd frontend
-npm install
-npm run build
+# 環境変数を設定
+cp .env.example .env
+# .envファイルを編集してAPIキーを設定
 ```
 
-## 起動方法
+### 開発サーバー起動
+```bash
+# フロントエンド開発サーバー
+cd frontend && npm run dev
+
+# TypeScript監視モード
+npm run type-check -- --watch
+```
+
+### ビルド
+```bash
+# プロダクションビルド
+cd frontend && npm run build
+
+# TypeScriptコンパイル
+npm run build:ts
+```
+
+## 🔧 環境変数
+
+```env
+# AI API Keys (最低1つ必須)
+OPENAI_API_KEY=sk-...
+STABILITY_API_KEY=sk-...
+REPLICATE_API_TOKEN=r8_...
+
+# Vercel KV (オプション - 画像履歴保存用)
+KV_REST_API_URL=https://...
+KV_REST_API_TOKEN=...
+
+# セキュリティ設定
+NODE_ENV=production
+CORS_ORIGIN=https://yourdomain.com
+INTERNAL_API_KEY=your-internal-api-key
+
+# エラートラッキング (オプション)
+SENTRY_DSN=https://...
+
+# パフォーマンス設定
+RATE_LIMIT_MS=500
+API_TIMEOUT_MS=120000
+MAX_BATCH_SIZE=8
+LOG_LEVEL=error
+```
+
+## 📊 パフォーマンス指標
+
+### Web Vitals目標値
+- **LCP (Largest Contentful Paint)**: < 2.5秒
+- **FID (First Input Delay)**: < 100ms
+- **CLS (Cumulative Layout Shift)**: < 0.1
+- **TTFB (Time to First Byte)**: < 600ms
+
+### ビルドサイズ
+- **Frontend**: ~180KB (gzip: 57KB)
+- **初回ロード**: < 100KB
+- **コード分割**: 自動最適化
+
+## 🧪 テスト
 
 ```bash
-# 開発環境
-cd api
-npm run dev
+# ユニットテスト実行
+npm test
 
-# 本番環境
-cd api
-npm start
+# カバレッジレポート生成
+npm run test:coverage
+
+# E2Eテスト
+npm run test:e2e
 ```
 
-## Vercelへのデプロイ
+### テストカバレッジ目標
+- ユニットテスト: 80%以上
+- 統合テスト: 主要フロー100%
+- E2Eテスト: クリティカルパス100%
 
-### 1. Vercel CLIのインストール
-```bash
-npm i -g vercel
-```
+## 🚢 デプロイ
 
-### 2. プロジェクトのデプロイ
-```bash
-vercel
-```
+### Vercel自動デプロイ
+1. GitHubリポジトリをVercelに接続
+2. 環境変数を設定
+3. mainブランチへのプッシュで自動デプロイ
 
-### 3. 環境変数の設定
-Vercelダッシュボードで以下の環境変数を設定：
-- `OPENAI_API_KEY`
-- `STABILITY_API_KEY`
-- `REPLICATE_API_TOKEN`
+### CI/CDパイプライン
+- **Security Scan**: npm audit + Snyk
+- **Lint & Type Check**: ESLint + TypeScript
+- **Test**: Jest + Coverage
+- **Build**: Vite production build
+- **Deploy**: Vercel自動デプロイ
 
-### 4. 本番デプロイ
-```bash
-vercel --prod
-```
+## 🔒 セキュリティ
 
-## 技術スタック
+### 実装済みセキュリティ対策
+- ✅ HTTPS強制 (HSTS)
+- ✅ XSS防止 (CSP, サニタイゼーション)
+- ✅ SQLインジェクション対策
+- ✅ CSRF保護
+- ✅ レート制限
+- ✅ 環境変数検証
+- ✅ APIキー認証
+- ✅ エラー情報の漏洩防止
 
-### バックエンド
-- Node.js / Express
-- OpenAI SDK
-- Replicate SDK
-- Cheerio (サイト解析)
+## 📈 監視とログ
 
-### フロントエンド
-- React
-- Tailwind CSS
-- Vite
-- Lucide Icons
+### Sentry統合
+- リアルタイムエラー追跡
+- パフォーマンスモニタリング
+- ユーザーコンテキスト追跡
+- センシティブ情報の自動除去
 
-## API エンドポイント
+### カスタムメトリクス
+- APIレスポンスタイム
+- メモリ使用量
+- エンドポイント別統計
+- キャッシュヒット率
 
-- `POST /api/generate`: 単一画像生成
-- `POST /api/generate/batch`: バッチ画像生成
-- `POST /api/analyze`: プロンプト解析・最適化
-- `POST /api/analyze-url`: URL解析
-- `POST /api/edit/image`: 画像編集
+## 🤝 コントリビューション
 
-## 本番環境での注意事項
+プルリクエストを歓迎します！大きな変更の場合は、まずissueを作成して変更内容を議論してください。
 
-- すべてのAPIキーが正しく設定されていることを確認
-- レート制限の設定を環境に合わせて調整
-- CORS設定を本番ドメインに限定することを推奨
+### 開発ガイドライン
+1. TypeScript厳密モードを維持
+2. テストカバレッジ80%以上を維持
+3. ESLintルールに従う
+4. コミットメッセージは[Conventional Commits](https://www.conventionalcommits.org/)形式
 
-## ライセンス
+## 📜 ライセンス
 
-MIT License
+このプロジェクトはMITライセンスの下で公開されています。詳細は[LICENSE](LICENSE)ファイルを参照してください。
 
-## サポート
+## 🙏 謝辞
 
-問題が発生した場合は、Issueを作成してください。
+- OpenAI - DALL-E 3 API
+- Stability AI - Stable Diffusion API
+- Replicate - モデルホスティング
+- Vercel - ホスティングとエッジ関数
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/yannsunn">yannsunn</a>
+</p>
