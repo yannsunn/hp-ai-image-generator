@@ -1,9 +1,9 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const { URL } = require('url');
-const logger = require('./utils/logger');
+const logger = require('./utils/logger.ts');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
-const { validateUrl } = require('./utils/input-validator');
+const { validateUrl } = require('./utils/input-validator.ts');
 const { withErrorHandler } = require('./utils/global-error-handler');
 
 // 既存のキーワード辞書をインポート

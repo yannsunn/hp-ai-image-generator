@@ -8,7 +8,8 @@
       "@utils/*": ["utils/*"],
       "@config/*": ["config/*"],
       "@services/*": ["services/*"]
-    }
+    },
+    "noPropertyAccessFromIndexSignature": false
   },
   "include": [
     "**/*"

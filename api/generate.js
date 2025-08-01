@@ -6,10 +6,10 @@ const {
   generateWithReplicate,
   getResolution
 } = require('./utils/image-generators');
-const logger = require('./utils/logger');
+const logger = require('./utils/logger.ts');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
-const { validateGenerateRequest } = require('./utils/input-validator');
-const { rateLimiter } = require('./utils/rate-limiter');
+const { validateGenerateRequest } = require('./utils/input-validator.ts');
+const { rateLimiter } = require('./utils/rate-limiter.ts');
 const { withErrorHandler } = require('./utils/global-error-handler');
 
 async function handler(req, res) {

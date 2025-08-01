@@ -1,5 +1,42 @@
+import type { CorsOptions } from 'cors';
+
+interface PricingModel {
+  standard?: number;
+  hd?: number;
+}
+
+interface PricingProvider {
+  'dall-e-3'?: PricingModel;
+  'sdxl'?: number;
+  'sd-1.5'?: number;
+}
+
+interface Config {
+  cors: CorsOptions;
+  pricing: {
+    openai: PricingProvider;
+    stability: PricingProvider;
+    replicate: PricingProvider;
+  };
+  api: {
+    rateLimit: number;
+    timeout: number;
+    maxBatchSize: number;
+    maxAnalyzePages: number;
+  };
+  logging: {
+    level: 'debug' | 'info' | 'warn' | 'error';
+    enabled: boolean;
+  };
+  env: {
+    isDevelopment: boolean;
+    isProduction: boolean;
+    isTest: boolean;
+  };
+}
+
 // API設定
-const config = {
+const config: Config = {
   // CORS設定（セキュア）
   cors: {
     origin: function(origin, callback) {
@@ -63,7 +100,7 @@ const config = {
 
   // ログ設定
   logging: {
-    level: process.env.LOG_LEVEL || 'error', // 'debug', 'info', 'warn', 'error'
+    level: (process.env.LOG_LEVEL || 'error') as Config['logging']['level'],
     enabled: process.env.NODE_ENV !== 'test'
   },
 
@@ -75,4 +112,4 @@ const config = {
   }
 };
 
-module.exports = config;
+export default config;

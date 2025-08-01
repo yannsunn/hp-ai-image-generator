@@ -1,7 +1,46 @@
-const logger = require('./logger');
+import logger from './logger';
+
+interface ValidationResult<T = unknown> {
+  valid: boolean;
+  error?: string;
+  errors?: string[];
+  sanitized?: T;
+  value?: T;
+}
+
+interface GenerateRequestBody {
+  prompt?: unknown;
+  count?: unknown;
+  api?: unknown;
+  additionalInstructions?: unknown;
+  context?: unknown;
+}
+
+interface SaveImageRequestBody {
+  image?: unknown;
+  metadata?: unknown;
+}
+
+interface Context {
+  industry?: string;
+  contentType?: string;
+  contentTypes?: string[];
+  source_url?: string;
+}
+
+interface ImageMetadata {
+  original_prompt?: string;
+  enhanced_prompt?: string;
+  api_used?: string;
+  cost?: number;
+  generation_time?: number;
+  resolution?: string;
+  format?: string;
+  context?: Context;
+}
 
 // XSS対策用のサニタイゼーション
-function sanitizeString(input) {
+function sanitizeString(input: unknown): string {
   if (typeof input !== 'string') return '';
   
   return input
@@ -14,7 +53,7 @@ function sanitizeString(input) {
 }
 
 // URL検証（より厳密）
-function validateUrl(url) {
+function validateUrl(url: unknown): ValidationResult<string> {
   if (!url || typeof url !== 'string') {
     return { valid: false, error: 'URLが提供されていません' };
   }
@@ -24,7 +63,7 @@ function validateUrl(url) {
     return { valid: false, error: 'URLが長すぎます（最大2048文字）' };
   }
 
-  let urlObj;
+  let urlObj: URL;
   try {
     urlObj = new URL(url);
   } catch {
@@ -38,7 +77,7 @@ function validateUrl(url) {
 
   // 内部ネットワークアクセス防止
   const hostname = urlObj.hostname.toLowerCase();
-  const privateNetworks = [
+  const privateNetworks: (string | RegExp)[] = [
     'localhost',
     '127.0.0.1',
     '0.0.0.0',
@@ -70,7 +109,7 @@ function validateUrl(url) {
 }
 
 // プロンプト検証
-function validatePrompt(prompt) {
+function validatePrompt(prompt: unknown): ValidationResult<string> {
   if (!prompt || typeof prompt !== 'string') {
     return { valid: false, error: 'プロンプトが提供されていません' };
   }
@@ -108,8 +147,8 @@ function validatePrompt(prompt) {
 }
 
 // 数値範囲検証
-function validateNumber(value, min = 1, max = 10, fieldName = '値') {
-  const num = parseInt(value, 10);
+function validateNumber(value: unknown, min = 1, max = 10, fieldName = '値'): ValidationResult<number> {
+  const num = parseInt(String(value), 10);
   
   if (isNaN(num)) {
     return { valid: false, error: `${fieldName}は数値である必要があります` };
@@ -123,10 +162,10 @@ function validateNumber(value, min = 1, max = 10, fieldName = '値') {
 }
 
 // API選択検証
-function validateApiChoice(api) {
+function validateApiChoice(api: unknown): ValidationResult<string> {
   const validApis = ['auto', 'openai', 'stability', 'replicate'];
   
-  if (!api || !validApis.includes(api.toLowerCase())) {
+  if (!api || typeof api !== 'string' || !validApis.includes(api.toLowerCase())) {
     return { valid: false, error: '無効なAPI選択です' };
   }
 
@@ -134,35 +173,36 @@ function validateApiChoice(api) {
 }
 
 // コンテキスト検証
-function validateContext(context) {
+function validateContext(context: unknown): ValidationResult<Context> {
   if (!context || typeof context !== 'object') {
     return { valid: true, sanitized: {} };
   }
 
-  const sanitized = {};
+  const ctx = context as Record<string, unknown>;
+  const sanitized: Context = {};
 
   // Industry validation
-  if (context.industry) {
-    sanitized.industry = sanitizeString(context.industry).substring(0, 50);
+  if (ctx.industry) {
+    sanitized.industry = sanitizeString(ctx.industry).substring(0, 50);
   }
 
   // Content type validation
-  if (context.contentType) {
-    sanitized.contentType = sanitizeString(context.contentType).substring(0, 50);
+  if (ctx.contentType) {
+    sanitized.contentType = sanitizeString(ctx.contentType).substring(0, 50);
   }
 
   // Content types array validation
-  if (Array.isArray(context.contentTypes)) {
-    sanitized.contentTypes = context.contentTypes
+  if (Array.isArray(ctx.contentTypes)) {
+    sanitized.contentTypes = ctx.contentTypes
       .slice(0, 10) // 最大10個
       .map(type => sanitizeString(type).substring(0, 50))
       .filter(type => type.length > 0);
   }
 
   // Source URL validation
-  if (context.source_url) {
-    const urlValidation = validateUrl(context.source_url);
-    if (urlValidation.valid) {
+  if (ctx.source_url) {
+    const urlValidation = validateUrl(ctx.source_url);
+    if (urlValidation.valid && urlValidation.sanitized) {
       sanitized.source_url = urlValidation.sanitized;
     }
   }
@@ -171,13 +211,19 @@ function validateContext(context) {
 }
 
 // 包括的なリクエスト検証
-function validateGenerateRequest(body) {
-  const errors = [];
+function validateGenerateRequest(body: GenerateRequestBody): ValidationResult<{
+  prompt: string;
+  count: number;
+  api: string;
+  additionalInstructions: string[];
+  context: Context;
+}> {
+  const errors: string[] = [];
 
   // プロンプト検証
   const promptValidation = validatePrompt(body.prompt);
   if (!promptValidation.valid) {
-    errors.push(promptValidation.error);
+    errors.push(promptValidation.error!);
   }
 
   // 枚数検証
@@ -188,23 +234,23 @@ function validateGenerateRequest(body) {
     '生成枚数'
   );
   if (!countValidation.valid) {
-    errors.push(countValidation.error);
+    errors.push(countValidation.error!);
   }
 
   // API選択検証
   const apiValidation = validateApiChoice(body.api || 'auto');
   if (!apiValidation.valid) {
-    errors.push(apiValidation.error);
+    errors.push(apiValidation.error!);
   }
 
   // 追加指示検証
-  let sanitizedInstructions = [];
+  let sanitizedInstructions: string[] = [];
   if (Array.isArray(body.additionalInstructions)) {
     sanitizedInstructions = body.additionalInstructions
       .slice(0, 20) // 最大20個
       .map(inst => {
         const validation = validatePrompt(inst);
-        return validation.valid ? validation.sanitized : '';
+        return validation.valid && validation.sanitized ? validation.sanitized : '';
       })
       .filter(inst => inst.length > 0);
   }
@@ -223,18 +269,21 @@ function validateGenerateRequest(body) {
   return {
     valid: true,
     sanitized: {
-      prompt: promptValidation.sanitized,
-      count: countValidation.value,
-      api: apiValidation.value,
+      prompt: promptValidation.sanitized!,
+      count: countValidation.value!,
+      api: apiValidation.value!,
       additionalInstructions: sanitizedInstructions,
-      context: contextValidation.sanitized
+      context: contextValidation.sanitized!
     }
   };
 }
 
 // 画像保存リクエスト検証
-function validateSaveImageRequest(body) {
-  const errors = [];
+function validateSaveImageRequest(body: SaveImageRequestBody): ValidationResult<{
+  image: string;
+  metadata: ImageMetadata;
+}> {
+  const errors: string[] = [];
 
   if (!body || typeof body !== 'object') {
     errors.push('リクエストボディが必要です');
@@ -260,39 +309,40 @@ function validateSaveImageRequest(body) {
   if (!body.metadata || typeof body.metadata !== 'object') {
     errors.push('メタデータが必要です');
   } else {
-    const sanitizedMetadata = {};
+    const meta = body.metadata as Record<string, unknown>;
+    const sanitizedMetadata: ImageMetadata = {};
     
     // 各フィールドをサニタイズ
-    if (body.metadata.original_prompt) {
-      sanitizedMetadata.original_prompt = sanitizeString(body.metadata.original_prompt).substring(0, 1000);
+    if (meta.original_prompt) {
+      sanitizedMetadata.original_prompt = sanitizeString(meta.original_prompt).substring(0, 1000);
     }
     
-    if (body.metadata.enhanced_prompt) {
-      sanitizedMetadata.enhanced_prompt = sanitizeString(body.metadata.enhanced_prompt).substring(0, 1000);
+    if (meta.enhanced_prompt) {
+      sanitizedMetadata.enhanced_prompt = sanitizeString(meta.enhanced_prompt).substring(0, 1000);
     }
     
-    if (body.metadata.api_used) {
-      sanitizedMetadata.api_used = sanitizeString(body.metadata.api_used).substring(0, 20);
+    if (meta.api_used) {
+      sanitizedMetadata.api_used = sanitizeString(meta.api_used).substring(0, 20);
     }
     
-    if (body.metadata.cost && typeof body.metadata.cost === 'number') {
-      sanitizedMetadata.cost = Math.max(0, Math.min(body.metadata.cost, 1000)); // 0-1000の範囲
+    if (meta.cost && typeof meta.cost === 'number') {
+      sanitizedMetadata.cost = Math.max(0, Math.min(meta.cost, 1000)); // 0-1000の範囲
     }
     
-    if (body.metadata.generation_time && typeof body.metadata.generation_time === 'number') {
-      sanitizedMetadata.generation_time = Math.max(0, Math.min(body.metadata.generation_time, 300000)); // 最大5分
+    if (meta.generation_time && typeof meta.generation_time === 'number') {
+      sanitizedMetadata.generation_time = Math.max(0, Math.min(meta.generation_time, 300000)); // 最大5分
     }
     
-    if (body.metadata.resolution) {
-      sanitizedMetadata.resolution = sanitizeString(body.metadata.resolution).substring(0, 20);
+    if (meta.resolution) {
+      sanitizedMetadata.resolution = sanitizeString(meta.resolution).substring(0, 20);
     }
     
-    if (body.metadata.format) {
-      sanitizedMetadata.format = sanitizeString(body.metadata.format).substring(0, 20);
+    if (meta.format) {
+      sanitizedMetadata.format = sanitizeString(meta.format).substring(0, 20);
     }
     
-    if (body.metadata.context && typeof body.metadata.context === 'object') {
-      sanitizedMetadata.context = validateContext(body.metadata.context).sanitized;
+    if (meta.context && typeof meta.context === 'object') {
+      sanitizedMetadata.context = validateContext(meta.context).sanitized;
     }
     
     body.metadata = sanitizedMetadata;
@@ -305,13 +355,13 @@ function validateSaveImageRequest(body) {
   return {
     valid: true,
     sanitized: {
-      image: body.image,
-      metadata: body.metadata
+      image: body.image as string,
+      metadata: body.metadata as ImageMetadata
     }
   };
 }
 
-module.exports = {
+export {
   sanitizeString,
   validateUrl,
   validatePrompt,

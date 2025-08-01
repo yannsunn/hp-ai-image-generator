@@ -1,7 +1,31 @@
-const logger = require('./logger');
+import logger from './logger';
+
+interface IndustryResult {
+  industry: string;
+  confidence: 'high' | 'medium' | 'low';
+  score: number;
+}
+
+interface ContentTypeResult {
+  type: string;
+  score?: number;
+  confidence: 'high' | 'medium' | 'low';
+  source?: string;
+}
+
+interface AnalysisResult {
+  industry: IndustryResult | null;
+  contentTypes: ContentTypeResult[];
+  analysis: {
+    textLength?: number;
+    url?: string;
+    timestamp: string;
+    error?: string;
+  };
+}
 
 // 業界キーワードマッピング
-const industryKeywords = {
+const industryKeywords: Record<string, string[]> = {
   'technology': [
     'テクノロジー', 'IT', 'システム', 'ソフトウェア', 'アプリ', 'デジタル', 'AI', '人工知能',
     'tech', 'software', 'digital', 'system', 'app', 'web', 'cloud', 'サーバー', 'データ',
@@ -65,7 +89,7 @@ const industryKeywords = {
 };
 
 // コンテンツタイプキーワードマッピング
-const contentTypeKeywords = {
+const contentTypeKeywords: Record<string, string[]> = {
   'hero': [
     'トップページ', 'メインビジュアル', 'ヒーロー', 'キービジュアル', '企業紹介',
     'hero', 'main', 'top', 'welcome', 'introduction', 'overview', 'home'
@@ -111,9 +135,9 @@ const contentTypeKeywords = {
 };
 
 // テキストから業界を推測
-function detectIndustry(text) {
+function detectIndustry(text: string): IndustryResult | null {
   const normalizedText = text.toLowerCase();
-  const scores = {};
+  const scores: Record<string, number> = {};
   
   // 各業界のスコアを計算
   Object.entries(industryKeywords).forEach(([industry, keywords]) => {
@@ -132,7 +156,9 @@ function detectIndustry(text) {
   if (maxScore === 0) return null;
   
   const detectedIndustry = Object.entries(scores).find(([_, score]) => score === maxScore)?.[0];
-  const confidence = maxScore > 2 ? 'high' : maxScore > 1 ? 'medium' : 'low';
+  if (!detectedIndustry) return null;
+  
+  const confidence: 'high' | 'medium' | 'low' = maxScore > 2 ? 'high' : maxScore > 1 ? 'medium' : 'low';
   
   return {
     industry: detectedIndustry,
@@ -142,9 +168,9 @@ function detectIndustry(text) {
 }
 
 // テキストからコンテンツタイプを推測
-function detectContentTypes(text, url = '') {
+function detectContentTypes(text: string, url = ''): ContentTypeResult[] {
   const normalizedText = (text + ' ' + url).toLowerCase();
-  const scores = {};
+  const scores: Record<string, number> = {};
   
   // 各コンテンツタイプのスコアを計算
   Object.entries(contentTypeKeywords).forEach(([contentType, keywords]) => {
@@ -166,18 +192,18 @@ function detectContentTypes(text, url = '') {
     .map(([type, score]) => ({
       type,
       score,
-      confidence: score > 2 ? 'high' : score > 1 ? 'medium' : 'low'
+      confidence: (score > 2 ? 'high' : score > 1 ? 'medium' : 'low') as 'high' | 'medium' | 'low'
     }));
   
   return detectedTypes;
 }
 
 // URLパスからコンテンツタイプを推測
-function detectContentTypeFromPath(url) {
+function detectContentTypeFromPath(url: string): ContentTypeResult | null {
   const path = url.toLowerCase();
   const pathSegments = path.split('/').filter(Boolean);
   
-  const pathMappings = {
+  const pathMappings: Record<string, string[]> = {
     'about': ['about', 'company', 'profile', '企業情報', '会社概要'],
     'service': ['service', 'services', 'business', 'solution', 'サービス'],
     'product': ['product', 'products', 'goods', '商品', '製品'],
@@ -204,7 +230,7 @@ function detectContentTypeFromPath(url) {
 }
 
 // メタデータとコンテンツを分析
-function analyzeContent(content, url = '') {
+function analyzeContent(content: string, url = ''): AnalysisResult {
   logger.debug('Analyzing content for industry and content type detection');
   
   try {
@@ -224,7 +250,7 @@ function analyzeContent(content, url = '') {
       finalContentTypes = [pathContentType, ...textContentTypes.filter(t => t.type !== pathContentType.type)];
     }
     
-    const result = {
+    const result: AnalysisResult = {
       industry: industryResult,
       contentTypes: finalContentTypes,
       analysis: {
@@ -248,14 +274,14 @@ function analyzeContent(content, url = '') {
       industry: null,
       contentTypes: [],
       analysis: {
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }
     };
   }
 }
 
-module.exports = {
+export {
   analyzeContent,
   detectIndustry,
   detectContentTypes,

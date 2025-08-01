@@ -1,10 +1,10 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
-const logger = require('./utils/logger');
+const logger = require('./utils/logger.ts');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
-const { validateUrl } = require('./utils/input-validator');
-const { rateLimiter } = require('./utils/rate-limiter');
-const { analyzeContent } = require('./utils/content-analyzer');
+const { validateUrl } = require('./utils/input-validator.ts');
+const { rateLimiter } = require('./utils/rate-limiter.ts');
+const { analyzeContent } = require('./utils/content-analyzer.ts');
 const { withErrorHandler } = require('./utils/global-error-handler');
 
 // URLの安全性検証

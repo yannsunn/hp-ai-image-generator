@@ -1,8 +1,38 @@
-const logger = require('./logger');
-const config = require('../config');
+import type { Request, Response, NextFunction } from 'express';
+import logger from './logger';
+import config from '../config';
+
+interface ClientData {
+  count: number;
+  resetTime: number;
+  firstRequest: number;
+}
+
+interface RateLimitResult {
+  allowed: boolean;
+  count: number;
+  maxRequests: number;
+  timeUntilReset: number;
+  resetTime: string;
+}
+
+interface RateLimitConfig {
+  maxRequests: number;
+  windowMs: number;
+}
+
+interface RateLimiterStats {
+  activeClients: number;
+  totalRequests: number;
+  cacheSize: number;
+  timestamp: string;
+}
 
 // メモリベースの簡易レート制限（本番環境ではRedisを推奨）
 class RateLimiter {
+  private requests: Map<string, ClientData>;
+  private resetInterval: number;
+
   constructor() {
     this.requests = new Map();
     this.resetInterval = 60000; // 1分
@@ -14,7 +44,7 @@ class RateLimiter {
   }
 
   // 古いエントリをクリーンアップ
-  cleanup() {
+  private cleanup(): void {
     const now = Date.now();
     const cutoff = now - this.resetInterval;
     
@@ -26,21 +56,22 @@ class RateLimiter {
   }
 
   // クライアント識別子を生成
-  getClientId(req) {
+  private getClientId(req: Request): string {
     // IP アドレスとUser-Agentを組み合わせて識別
     const forwarded = req.headers['x-forwarded-for'];
-    const ip = forwarded ? forwarded.split(',')[0].trim() : 
-               req.connection?.remoteAddress || 
-               req.socket?.remoteAddress || 
-               req.ip ||
-               'unknown';
+    const ip = forwarded ? 
+      (Array.isArray(forwarded) ? forwarded[0] : forwarded.split(',')[0].trim()) : 
+      (req.connection as any)?.remoteAddress || 
+      (req.socket as any)?.remoteAddress || 
+      req.ip ||
+      'unknown';
     
     const userAgent = req.headers['user-agent'] || 'unknown';
     return `${ip}:${userAgent.substring(0, 50)}`;
   }
 
   // レート制限チェック
-  checkLimit(req, maxRequests = 30, windowMs = 60000) {
+  checkLimit(req: Request, maxRequests = 30, windowMs = 60000): RateLimitResult {
     const clientId = this.getClientId(req);
     const now = Date.now();
     
@@ -81,8 +112,8 @@ class RateLimiter {
   }
 
   // API固有のレート制限
-  checkApiLimit(req, endpoint) {
-    const limits = {
+  checkApiLimit(req: Request, endpoint: string): RateLimitResult {
+    const limits: Record<string, RateLimitConfig> = {
       // 画像生成API（重いため制限厳しく）
       'generate': { maxRequests: 10, windowMs: 60000 },
       'generate/batch': { maxRequests: 5, windowMs: 60000 },
@@ -100,7 +131,7 @@ class RateLimiter {
   }
 
   // 統計情報取得
-  getStats() {
+  getStats(): RateLimiterStats {
     const now = Date.now();
     let activeClients = 0;
     let totalRequests = 0;
@@ -125,34 +156,35 @@ class RateLimiter {
 const rateLimiter = new RateLimiter();
 
 // Express ミドルウェア
-function createRateLimitMiddleware(endpoint) {
-  return (req, res, next) => {
+function createRateLimitMiddleware(endpoint: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const result = rateLimiter.checkApiLimit(req, endpoint);
     
     // レスポンスヘッダーに制限情報を追加
     res.set({
-      'X-RateLimit-Limit': result.maxRequests,
-      'X-RateLimit-Remaining': Math.max(0, result.maxRequests - result.count),
+      'X-RateLimit-Limit': result.maxRequests.toString(),
+      'X-RateLimit-Remaining': Math.max(0, result.maxRequests - result.count).toString(),
       'X-RateLimit-Reset': result.resetTime
     });
 
     if (!result.allowed) {
       const retryAfter = Math.ceil(result.timeUntilReset / 1000);
-      res.set('Retry-After', retryAfter);
+      res.set('Retry-After', retryAfter.toString());
       
-      return res.status(429).json({
+      res.status(429).json({
         success: false,
         error: 'レート制限に達しました',
         details: `1分間に${result.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`,
         retryAfter: retryAfter
       });
+      return;
     }
 
     next();
   };
 }
 
-module.exports = {
+export {
   rateLimiter,
   createRateLimitMiddleware
 };

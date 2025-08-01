@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import Replicate from 'replicate';
 import fetch from 'node-fetch';
-const logger = require('./utils/logger');
+const logger = require('./utils/logger.ts');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
 export default async function handler(req, res) {
