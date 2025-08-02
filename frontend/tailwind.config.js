@@ -82,6 +82,10 @@ export default {
       boxShadow: {
         'glow': '0 0 20px rgba(139, 92, 246, 0.5)',
         'glow-lg': '0 0 40px rgba(139, 92, 246, 0.3)',
+        'neumorphism': '20px 20px 60px #bebebe, -20px -20px 60px #ffffff',
+        'neumorphism-inset': 'inset 20px 20px 60px #bebebe, inset -20px -20px 60px #ffffff',
+        'neumorphism-dark': '20px 20px 60px #0a0a0a, -20px -20px 60px #2a2a2a',
+        'neumorphism-dark-inset': 'inset 20px 20px 60px #0a0a0a, inset -20px -20px 60px #2a2a2a',
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
