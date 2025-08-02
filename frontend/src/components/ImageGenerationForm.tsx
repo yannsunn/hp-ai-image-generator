@@ -627,20 +627,26 @@ const ImageGenerationForm: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 via-white to-secondary-50 relative overflow-hidden">
+      {/* 背景装飾 */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-primary-300/20 rounded-full filter blur-3xl animate-float" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-secondary-300/20 rounded-full filter blur-3xl animate-float animation-delay-200" />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent-300/10 rounded-full filter blur-3xl animate-pulse-slow" />
+      </div>
+      <div className="container mx-auto px-4 py-6 sm:py-8 relative z-10">
         <div className="max-w-6xl mx-auto">
           {/* ヘッダー */}
           <div className="text-center mb-8">
-            <div className="flex items-center justify-center gap-4 mb-6">
-              <div className="p-3 rounded-full bg-purple-100">
-                <Sparkles className="w-10 h-10 text-purple-600" />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 animate-fade-in">
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-primary-500 to-secondary-500 shadow-glow animate-float">
+                <Sparkles className="w-12 h-12 text-white" />
               </div>
               <div className="text-left">
-                <h1 className="text-4xl font-bold text-gray-800">
+                <h1 className="text-4xl sm:text-5xl font-bold gradient-text animate-slide-down text-center sm:text-left">
                   AI画像生成システム
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-gray-600 text-base sm:text-lg mt-2 animate-slide-up animation-delay-200 text-center sm:text-left">
                   ホームページ制作に最適な画像を生成・編集
                 </p>
               </div>
@@ -653,7 +659,7 @@ const ImageGenerationForm: React.FC = () => {
                   setShowHistory(true);
                   loadHistory();
                 }}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors flex items-center gap-2"
+                className="px-5 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl hover:from-gray-700 hover:to-gray-800 transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <History className="w-4 h-4" />
                 生成履歴
@@ -663,8 +669,8 @@ const ImageGenerationForm: React.FC = () => {
 
 
           {/* メインフォーム */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <div className="card-modern p-8 mb-8 animate-fade-in animation-delay-400">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
               {/* 業界選択 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -673,7 +679,7 @@ const ImageGenerationForm: React.FC = () => {
                 <select
                   value={context.industry}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setContext({...context, industry: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="input-modern"
                 >
                   {industries.map(ind => (
                     <option key={ind.value} value={ind.value}>{ind.label}</option>
@@ -686,9 +692,9 @@ const ImageGenerationForm: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   コンテンツタイプ（複数選択可）
                 </label>
-                <div className="space-y-2 max-h-64 overflow-y-auto border border-gray-300 rounded-lg p-3">
+                <div className="space-y-2 max-h-64 overflow-y-auto glass-effect rounded-xl p-4">
                   {contentTypes.slice(1).map(type => (
-                    <label key={type.value} className="flex items-start cursor-pointer hover:bg-gray-50 p-2 rounded">
+                    <label key={type.value} className="flex items-start cursor-pointer hover:bg-primary-50/50 p-3 rounded-xl transition-all duration-200 hover:shadow-md">
                       <input
                         type="checkbox"
                         checked={selectedContentTypes.includes(type.value)}
@@ -715,11 +721,11 @@ const ImageGenerationForm: React.FC = () => {
                     {selectedContentTypes.map(type => {
                       const contentType = contentTypes.find(ct => ct.value === type);
                       return (
-                        <span key={type} className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-purple-100 text-purple-800">
+                        <span key={type} className="inline-flex items-center px-4 py-2 rounded-full text-sm bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 font-medium shadow-md">
                           {contentType?.label}
                           <button
                             onClick={() => setSelectedContentTypes(selectedContentTypes.filter(t => t !== type))}
-                            className="ml-2 text-purple-600 hover:text-purple-900"
+                            className="ml-2 text-primary-600 hover:text-primary-900 transition-colors duration-200"
                           >
                             ×
                           </button>
@@ -733,23 +739,23 @@ const ImageGenerationForm: React.FC = () => {
 
             {/* 入力モード切り替え */}
             <div className="mb-6">
-              <div className="flex space-x-4 mb-4">
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
                 <button
                   onClick={() => setInputMode('text')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
                     inputMode === 'text' 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-md hover:shadow-lg'
                   }`}
                 >
                   テキストで指定
                 </button>
                 <button
                   onClick={() => setInputMode('url')}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
                     inputMode === 'url' 
-                      ? 'bg-purple-600 text-white' 
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-md hover:shadow-lg'
                   }`}
                 >
                   ホームページURLから生成
@@ -768,12 +774,12 @@ const ImageGenerationForm: React.FC = () => {
                       value={url}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setUrl(e.target.value)}
                       placeholder="https://example.jp"
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="flex-1 input-modern"
                     />
                     <button
                       onClick={() => analyzeUrl(true)}
                       disabled={isAnalyzingUrl || !url.trim()}
-                      className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {isAnalyzingUrl ? (
                         <>
@@ -786,7 +792,7 @@ const ImageGenerationForm: React.FC = () => {
                     </button>
                   </div>
                   {urlContent && (
-                    <div className="mt-2 p-3 bg-blue-50 rounded-lg text-sm">
+                    <div className="mt-2 p-4 glass-effect rounded-xl text-sm animate-slide-down">
                       <p className="font-medium text-blue-900">✅ サイト解析完了・自動設定済み</p>
                       <p className="text-blue-700">{urlContent.title}</p>
                       {context.industry && (
@@ -817,7 +823,7 @@ const ImageGenerationForm: React.FC = () => {
                   )}
                   
                   {detailedAnalysis && (
-                    <div className="mt-3 p-4 bg-purple-50 rounded-lg">
+                    <div className="mt-3 p-5 gradient-bg rounded-xl border border-primary-200/50 animate-slide-up">
                       <h4 className="font-semibold text-purple-900 mb-2">詳細解析結果</h4>
                       <div className="space-y-2 text-sm">
                         <div>
@@ -838,7 +844,7 @@ const ImageGenerationForm: React.FC = () => {
                             <span className="font-medium text-purple-800">主要テーマ:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {detailedAnalysis.main_themes.map((theme, idx) => (
-                                <span key={idx} className="px-2 py-1 bg-purple-200 text-purple-800 rounded text-xs">
+                                <span key={idx} className="px-3 py-1.5 bg-gradient-to-r from-primary-100 to-primary-200 text-primary-800 rounded-full text-xs font-medium shadow-sm">
                                   {theme}
                                 </span>
                               ))}
@@ -872,7 +878,7 @@ const ImageGenerationForm: React.FC = () => {
                   value={prompt}
                   onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
                   placeholder="生成したい画像のメインとなる指示を入力してください..."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="input-modern resize-none"
                   rows={3}
                 />
               </div>
@@ -897,56 +903,56 @@ const ImageGenerationForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => addInstruction('高品質で写実的な画像')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     高品質
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('明るく清潔感のある雰囲気')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     明るい雰囲気
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('プロフェッショナルな印象')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     プロフェッショナル
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('信頼感のあるデザイン')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     信頼感
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('モダンでスタイリッシュ')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     モダン
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('温かみのある雰囲気')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     温かみ
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('ミニマリストデザイン')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     ミニマル
                   </button>
                   <button
                     type="button"
                     onClick={() => addInstruction('日本的な美意識')}
-                    className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                    className="px-4 py-2 text-xs bg-gradient-to-r from-gray-100 to-gray-200 hover:from-gray-200 hover:to-gray-300 rounded-full transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                   >
                     和風
                   </button>
@@ -959,13 +965,13 @@ const ImageGenerationForm: React.FC = () => {
                       value={instruction}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => updateInstruction(index, e.target.value)}
                       placeholder={`追加の指示 ${index + 1}（例：明るい雰囲気で、プロフェッショナルな印象）`}
-                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      className="flex-1 input-modern"
                     />
                     {additionalInstructions.length > 1 && (
                       <button
                         type="button"
                         onClick={() => removeInstruction(index)}
-                        className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                        className="px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-xl transition-all duration-300 hover:shadow-md"
                       >
                         削除
                       </button>
@@ -977,17 +983,17 @@ const ImageGenerationForm: React.FC = () => {
 
             {/* プロンプト解析結果 */}
             {promptAnalysis && (
-              <div className="mb-6 p-4 bg-purple-50 rounded-lg">
-                <h3 className="text-sm font-semibold text-purple-800 mb-2 flex items-center gap-2">
+              <div className="mb-6 p-6 gradient-bg rounded-xl border border-primary-200/50 animate-fade-in">
+                <h3 className="text-sm font-semibold text-primary-800 mb-3 flex items-center gap-2">
                   <Wand2 className="w-4 h-4" />
                   プロンプト解析
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="font-medium text-gray-700">推奨スタイル:</span>
                     <div className="flex flex-wrap gap-1 mt-1">
                       {promptAnalysis.style_suggestions?.map((style, idx) => (
-                        <span key={idx} className="px-2 py-1 bg-white rounded text-purple-600">
+                        <span key={idx} className="px-3 py-1.5 bg-gradient-to-r from-white to-primary-50 rounded-full text-primary-600 font-medium shadow-sm">
                           {style}
                         </span>
                       ))}
@@ -999,7 +1005,7 @@ const ImageGenerationForm: React.FC = () => {
                       {promptAnalysis.color_palette?.map((color, idx) => (
                         <div
                           key={idx}
-                          className="w-6 h-6 rounded border border-gray-300"
+                          className="w-6 h-6 rounded border border-gray-300 shadow-sm"
                           style={{ backgroundColor: color }}
                           title={color}
                         />
@@ -1011,7 +1017,7 @@ const ImageGenerationForm: React.FC = () => {
             )}
 
             {/* API選択と生成設定 */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   API選択
@@ -1019,7 +1025,7 @@ const ImageGenerationForm: React.FC = () => {
                 <select
                   value={selectedApi}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setSelectedApi(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="input-modern"
                 >
                   <option value="auto">自動選択（最適なAPIを自動判定）</option>
                   {availableApis.map(api => (
@@ -1038,7 +1044,7 @@ const ImageGenerationForm: React.FC = () => {
                 <select
                   value={numberOfImages}
                   onChange={(e: ChangeEvent<HTMLSelectElement>) => setNumberOfImages(parseInt(e.target.value))}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+                  className="input-modern"
                 >
                   <option value="1">1枚</option>
                   <option value="2">2枚</option>
@@ -1058,7 +1064,7 @@ const ImageGenerationForm: React.FC = () => {
                 <button
                   onClick={handleGenerate}
                   disabled={isGenerating || !prompt.trim()}
-                  className="w-full px-8 py-3 text-white rounded-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  className="w-full btn-primary text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-glow hover:shadow-glow-lg"
                 >
                   {isGenerating ? (
                     <>
@@ -1077,7 +1083,7 @@ const ImageGenerationForm: React.FC = () => {
 
             {/* エラー表示 */}
             {error && (
-              <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mt-4 p-5 bg-gradient-to-r from-red-50 to-red-100/50 border border-red-200 rounded-xl shadow-lg animate-shake">
                 <h3 className="text-red-800 font-semibold mb-2">エラーが発生しました</h3>
                 <p className="text-red-700">{error}</p>
                 {error.includes('クレジット') && (
@@ -1114,12 +1120,12 @@ const ImageGenerationForm: React.FC = () => {
 
           {/* コスト表示 */}
           {totalCost > 0 && (
-            <div className="bg-white rounded-lg shadow-md p-4 mb-8 flex items-center justify-between">
+            <div className="card-modern p-6 mb-8 flex items-center justify-between animate-slide-up">
               <div className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-green-600" />
+                <DollarSign className="w-5 h-5 text-accent-600" />
                 <span className="font-semibold">総コスト:</span>
               </div>
-              <span className="text-2xl font-bold text-green-600">
+              <span className="text-2xl font-bold text-accent-600">
                 ${totalCost.toFixed(4)}
               </span>
             </div>
@@ -1127,7 +1133,7 @@ const ImageGenerationForm: React.FC = () => {
 
           {/* 生成された画像 */}
           {generatedImages.length > 0 && (
-            <div className="bg-gray-50/50 rounded-2xl p-8">
+            <div className="glass-effect rounded-2xl p-8 animate-fade-in animation-delay-400">
               <ImageGallery 
                 images={generatedImages}
                 onEdit={handleEdit}
@@ -1141,8 +1147,8 @@ const ImageGenerationForm: React.FC = () => {
 
       {/* 履歴モーダル */}
       {showHistory && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="card-modern max-w-6xl w-full max-h-[90vh] md:max-h-[85vh] overflow-hidden flex flex-col animate-scale-in mx-4 sm:mx-0">
             <div className="p-6 border-b flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
                 <History className="w-6 h-6" />
@@ -1150,7 +1156,7 @@ const ImageGenerationForm: React.FC = () => {
               </h2>
               <button
                 onClick={() => setShowHistory(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-xl transition-all duration-300 hover:rotate-90"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1162,9 +1168,9 @@ const ImageGenerationForm: React.FC = () => {
                   <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
                 </div>
               ) : imageHistory.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {imageHistory.map((item) => (
-                    <div key={item.id} className="bg-gray-50 rounded-lg overflow-hidden shadow hover:shadow-lg transition-shadow">
+                    <div key={item.id} className="glass-effect rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 hover:transform hover:scale-105">
                       {item.image ? (
                         <img
                           src={item.image}
@@ -1188,7 +1194,7 @@ const ImageGenerationForm: React.FC = () => {
                         {item.image && (
                           <button
                             onClick={() => loadFromHistory(item)}
-                            className="mt-2 w-full px-3 py-1.5 bg-purple-600 text-white rounded text-sm hover:bg-purple-700 transition-colors"
+                            className="mt-2 w-full px-4 py-2 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg text-sm font-medium hover:from-primary-700 hover:to-primary-800 transition-all duration-300 shadow-md hover:shadow-lg transform hover:scale-105"
                           >
                             この画像を使用
                           </button>
