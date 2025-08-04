@@ -286,7 +286,26 @@ async function analyzeUrlHandler(req: Request, res: Response): Promise<void> {
     const result = await analyzeUrl(validatedUrl);
     
     if (result.success) {
-      sendSuccessResponse(res, result);
+      // 成功レスポンスの構造を整理
+      const response = {
+        success: true,
+        url: result.url,
+        title: result.title,
+        content: result.content,
+        images: result.images,
+        analyzedAt: result.analyzedAt,
+        // 自動推測された情報を追加
+        industry: result.content.industry || '',
+        content_type: result.content.contentType || 'hero',
+        detected_content_types: result.content.keywords || [],
+        suggested_prompt: `${result.content.industry}業界の${result.content.contentType}画像。${result.title}`,
+        analysis: {
+          industry_confidence: 'medium',
+          detected_themes: result.content.keywords || [],
+          analysis_method: 'url_content'
+        }
+      };
+      res.status(200).json(response);
     } else {
       sendErrorResponse(res, 400, result.error || '解析エラー', result.details);
     }

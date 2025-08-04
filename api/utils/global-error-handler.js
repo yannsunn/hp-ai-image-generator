@@ -26,12 +26,21 @@ function withErrorHandler(handler) {
       
       // レスポンスがまだ送信されていない場合のみエラーレスポンスを送信
       if (!res.headersSent) {
+        // Content-Typeを明示的に設定（JSONパースエラー対策）
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        
         // 開発環境では詳細なエラー情報を含める
         const isDev = process.env.NODE_ENV === 'development';
         const errorMessage = isDev ? error.message : '内部サーバーエラーが発生しました';
         const errorDetails = isDev ? error.stack : undefined;
         
-        return sendErrorResponse(res, 500, errorMessage, errorDetails);
+        try {
+          return sendErrorResponse(res, 500, errorMessage, errorDetails);
+        } catch (sendError) {
+          // sendErrorResponseも失敗した場合の最終手段
+          logger.error('Failed to send error response:', sendError);
+          res.status(500).end();
+        }
       }
     }
   };
