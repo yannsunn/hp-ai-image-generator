@@ -25,7 +25,7 @@ const ImageGenerationForm: React.FC = () => {
   const [prompt, setPrompt] = useState<string>('');
   const [additionalInstructions, setAdditionalInstructions] = useState<string[]>(['']); // 追加の指示文
   const [url, setUrl] = useState<string>('');
-  const [inputMode, setInputMode] = useState<'text' | 'url'>('text'); // 'text' or 'url'
+  const [inputMode, setInputMode] = useState<'text' | 'url'>('url'); // 'text' or 'url' - デフォルトをURLに変更
   const [context, setContext] = useState<Context>({
     industry: '',
     contentType: ''
@@ -741,16 +741,6 @@ const ImageGenerationForm: React.FC = () => {
             <div className="mb-6">
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 mb-4">
                 <button
-                  onClick={() => setInputMode('text')}
-                  className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
-                    inputMode === 'text' 
-                      ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-md hover:shadow-lg'
-                  }`}
-                >
-                  テキストで指定
-                </button>
-                <button
                   onClick={() => setInputMode('url')}
                   className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
                     inputMode === 'url' 
@@ -759,6 +749,16 @@ const ImageGenerationForm: React.FC = () => {
                   }`}
                 >
                   ホームページURLから生成
+                </button>
+                <button
+                  onClick={() => setInputMode('text')}
+                  className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 transform hover:scale-105 ${
+                    inputMode === 'text' 
+                      ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg' 
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  テキストで指定
                 </button>
               </div>
 
