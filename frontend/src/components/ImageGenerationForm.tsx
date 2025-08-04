@@ -34,7 +34,8 @@ const ImageGenerationForm: React.FC = () => {
     };
     
     // プロダクション環境でのバイパストークン設定
-    if (window.location.hostname === 'hp-ai-image-generator.vercel.app') {
+    if (window.location.hostname === 'hp-ai-gen.vercel.app' || 
+        window.location.hostname === 'hp-ai-image-generator.vercel.app') {
       headers['x-vercel-protection-bypass'] = 'bypass-65da4d54b53364a97e9f990337628188';
       headers['x-vercel-set-bypass-cookie'] = 'true';
     }

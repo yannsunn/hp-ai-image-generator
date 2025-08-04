@@ -24,7 +24,7 @@
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
-          "value": "https://hp-ai-image-generator.vercel.app"
+          "value": "https://hp-ai-gen.vercel.app"
         },
         {
           "key": "Access-Control-Allow-Methods",
