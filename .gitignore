@@ -60,3 +60,4 @@ htmlcov/
 # Documentation
 *.md.backup/.env
 .env*.local
+.env.production
