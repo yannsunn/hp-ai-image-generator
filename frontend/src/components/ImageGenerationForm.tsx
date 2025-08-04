@@ -26,6 +26,21 @@ const ImageGenerationForm: React.FC = () => {
   const [additionalInstructions, setAdditionalInstructions] = useState<string[]>(['']); // 追加の指示文
   const [url, setUrl] = useState<string>('');
   const [inputMode, setInputMode] = useState<'text' | 'url'>('url'); // 'text' or 'url' - デフォルトをURLに変更
+
+  // Vercelプロテクションバイパス用のヘッダーを生成
+  const getBypassHeaders = () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json'
+    };
+    
+    // プロダクション環境でのバイパストークン設定
+    if (window.location.hostname === 'hp-ai-image-generator.vercel.app') {
+      headers['x-vercel-protection-bypass'] = 'bypass-65da4d54b53364a97e9f990337628188';
+      headers['x-vercel-set-bypass-cookie'] = 'true';
+    }
+    
+    return headers;
+  };
   const [context, setContext] = useState<Context>({
     industry: '',
     contentType: ''
@@ -58,7 +73,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/apis/available', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getBypassHeaders(),
         body: JSON.stringify({})
       });
       const data: { available: string[] } = await response.json();
@@ -91,7 +106,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/analyze', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getBypassHeaders(),
         body: JSON.stringify({ 
           prompt, 
           context
@@ -124,7 +139,7 @@ const ImageGenerationForm: React.FC = () => {
         // 詳細解析
         const response = await fetch('/api/analyze-site', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getBypassHeaders(),
           body: JSON.stringify({ url, detailed: true })
         });
 
@@ -165,7 +180,7 @@ const ImageGenerationForm: React.FC = () => {
         // 単純解析（新しい自動推測機能付き）
         const response = await fetch('/api/analyze-url', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: getBypassHeaders(),
           body: JSON.stringify({ url })
         });
 
@@ -246,7 +261,7 @@ const ImageGenerationForm: React.FC = () => {
       
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getBypassHeaders(),
         body: JSON.stringify(requestPayload)
       });
 
@@ -342,7 +357,7 @@ const ImageGenerationForm: React.FC = () => {
       const response = await fetch('/api/images/save', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
+          ...getBypassHeaders(),
           'X-User-Id': 'default' // 今後ユーザー認証を追加可能
         },
         body: JSON.stringify({
@@ -469,6 +484,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/images/history', {
         headers: {
+          ...getBypassHeaders(),
           'X-User-Id': 'default'
         }
       });
