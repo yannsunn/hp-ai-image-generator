@@ -260,19 +260,34 @@ const ImageGenerationForm: React.FC = () => {
         options: {}
       };
       
+      // タイムアウト付きfetch
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60秒タイムアウト
+      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: getBypassHeaders(),
-        body: JSON.stringify(requestPayload)
-      });
+        body: JSON.stringify(requestPayload),
+        signal: controller.signal
+      }).finally(() => clearTimeout(timeoutId));
 
       let data: GenerationResponse;
       
       // レスポンスの処理
       let responseText: string = '';
       try {
+        // ネットワークエラーチェック
+        if (!response.ok && response.status === 0) {
+          throw new Error('ネットワークエラー: サーバーに接続できませんでした');
+        }
+        
         // まずテキストとして読み取る
         responseText = await response.text();
+        
+        // 空のレスポンスチェック
+        if (!responseText) {
+          throw new Error('空のレスポンス: サーバーからデータが返されませんでした');
+        }
         
         // JSONとしてパース
         data = JSON.parse(responseText) as GenerationResponse;
