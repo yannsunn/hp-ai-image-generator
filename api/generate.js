@@ -1,9 +1,7 @@
 const { translateInstruction, translateInstructions } = require('./utils/japanese-to-english');
 const {
   enhancePromptForJapan,
-  generateWithOpenAI,
-  generateWithStability,
-  generateWithReplicate,
+  generateWithGemini,
   getResolution
 } = require('./utils/image-generators');
 const logger = require('./utils/logger');
@@ -70,13 +68,11 @@ async function generateImage(req, res) {
     // API自動選択
     let apiToUse = api;
     if (api === 'auto' || !api) {
-      // 利用可能なAPIから自動選択
-      if (process.env.OPENAI_API_KEY) apiToUse = 'openai';
-      else if (process.env.STABILITY_API_KEY) apiToUse = 'stability';
-      else if (process.env.REPLICATE_API_TOKEN) apiToUse = 'replicate';
+      // Gemini APIを使用
+      if (process.env.GEMINI_API_KEY) apiToUse = 'gemini';
       else {
-        sendErrorResponse(res, 500, '画像生成APIが設定されていません', 
-          '環境変数にAPIキーを設定してください');
+        sendErrorResponse(res, 500, '画像生成APIが設定されていません',
+          'Vercel環境変数にGEMINI_API_KEYを設定してください');
         return;
       }
     }
@@ -85,44 +81,22 @@ async function generateImage(req, res) {
     
     try {
       switch (apiToUse) {
-        case 'openai':
-          if (!process.env.OPENAI_API_KEY) {
-            sendErrorResponse(res, 400, 'OpenAI APIキーが設定されていません');
+        case 'gemini':
+          if (!process.env.GEMINI_API_KEY) {
+            sendErrorResponse(res, 400, 'Gemini APIキーが設定されていません',
+              'Vercel環境変数にGEMINI_API_KEYを設定してください');
             return;
           }
-          result = await generateWithOpenAI(
-            combinedPrompt, 
-            process.env.OPENAI_API_KEY, 
+          result = await generateWithGemini(
+            combinedPrompt,
+            process.env.GEMINI_API_KEY,
             context
           );
           break;
-          
-        case 'stability':
-          if (!process.env.STABILITY_API_KEY) {
-            sendErrorResponse(res, 400, 'Stability APIキーが設定されていません');
-            return;
-          }
-          result = await generateWithStability(
-            combinedPrompt, 
-            process.env.STABILITY_API_KEY, 
-            context
-          );
-          break;
-          
-        case 'replicate':
-          if (!process.env.REPLICATE_API_TOKEN) {
-            sendErrorResponse(res, 400, 'Replicate APIトークンが設定されていません');
-            return;
-          }
-          result = await generateWithReplicate(
-            combinedPrompt, 
-            process.env.REPLICATE_API_TOKEN, 
-            context
-          );
-          break;
-          
+
         default:
-          sendErrorResponse(res, 400, '無効なAPIが指定されました');
+          sendErrorResponse(res, 400, '無効なAPIが指定されました',
+            '現在サポートされているのはGemini APIのみです');
           return;
       }
       

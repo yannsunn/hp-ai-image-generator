@@ -1,5 +1,3 @@
-const OpenAI = require('openai');
-const Replicate = require('replicate');
 const fetch = require('node-fetch');
 const config = require('../config');
 const logger = require('./logger');
@@ -71,160 +69,87 @@ function enhancePromptForJapan(prompt, context = {}) {
   return enhancedPrompt;
 }
 
-// OpenAI DALL-E 3で画像生成
-async function generateWithOpenAI(prompt, apiKey, context = {}) {
-  const openai = new OpenAI({ apiKey });
-  
+// Gemini 2.5 Flash Imageで画像生成 (Nano Banana)
+async function generateWithGemini(prompt, apiKey, context = {}) {
   try {
-    const response = await openai.images.generate({
-      model: 'dall-e-3',
-      prompt: prompt,
-      n: 1,
-      size: '1024x1024',
-      quality: 'standard',
-      response_format: 'url'
-    });
-    
-    // 画像をbase64に変換
-    const imageUrl = response.data[0].url;
-    const imageResponse = await fetch(imageUrl);
-    const imageBuffer = await imageResponse.buffer();
-    const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-    
-    return {
-      image: base64Image,
-      cost: config.pricing.openai['dall-e-3'].standard
-    };
-  } catch (error) {
-    logger.error('OpenAI API Error:', error);
-    throw error;
-  }
-}
+    const { GoogleGenerativeAI } = require('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
 
-// Stability AIで画像生成
-async function generateWithStability(prompt, apiKey, context = {}) {
-  try {
-    const response = await fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({
-        text_prompts: [{
-          text: prompt,
-          weight: 1
-        }],
-        cfg_scale: 7,
-        height: 1024,
-        width: 1024,
-        samples: 1,
-        steps: 30
-      })
+    logger.info('Gemini 2.5 Flash Image generation with prompt:', prompt);
+
+    // Gemini 2.5 Flash Image モデルを使用
+    const modelName = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image';
+    const model = genAI.getGenerativeModel({
+      model: modelName
     });
-    
-    if (!response.ok) {
-      throw new Error(`Stability AI API error: ${response.status}`);
+
+    // 画像生成リクエスト
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+
+    // Gemini APIレスポンスから画像データを抽出
+    const parts = response.candidates?.[0]?.content?.parts;
+
+    if (!parts || parts.length === 0) {
+      throw new Error('No response parts returned from Gemini API');
     }
-    
-    const data = await response.json();
-    const base64Image = `data:image/png;base64,${data.artifacts[0].base64}`;
-    
-    return {
-      image: base64Image,
-      cost: config.pricing.stability.sdxl
-    };
-  } catch (error) {
-    logger.error('Stability AI Error:', error);
-    throw error;
-  }
-}
 
-// Replicateで画像生成
-async function generateWithReplicate(prompt, apiToken, context = {}) {
-  
-  const replicate = new Replicate({
-    auth: apiToken
-  });
-  
-  try {
-    
-    // Replicate用のプロンプトを調整（UTF-8文字境界を考慮）
-    const replicatePrompt = prompt.replace('negative prompt:', '').slice(0, 500);
-    const negativeMatch = prompt.match(/negative prompt: ([^,]+)/i);
-    const negativePrompt = negativeMatch ? negativeMatch[1] : 'low quality, blurry, distorted';
-    
-    // タイムアウトを短縮して高速化
-    const output = await replicate.run(
-      'stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b',
-      {
-        input: {
-          prompt: replicatePrompt,
-          negative_prompt: negativePrompt,
-          width: 1024,
-          height: 1024,
-          num_outputs: 1,
-          scheduler: 'K_EULER_ANCESTRAL', // 高速スケジューラー
-          num_inference_steps: 25, // ステップ数を減らして高速化
-          guidance_scale: 7.5, // ガイダンスを下げて高速化
-          seed: Math.floor(Math.random() * 1000000)
-        }
+    // 画像データを探す（inline_dataまたはinlineData形式）
+    let imageData = null;
+    for (const part of parts) {
+      if (part.inlineData || part.inline_data) {
+        imageData = part.inlineData || part.inline_data;
+        break;
       }
-    );
-    
-    
-    // Replicateは配列またはURLを返す
-    const imageUrl = Array.isArray(output) ? output[0] : output;
-    
-    if (!imageUrl) {
-      throw new Error('No image URL returned from Replicate');
     }
-    
-    
-    // 画像をbase64に変換
-    const imageResponse = await fetch(imageUrl);
-    
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+
+    if (!imageData || !imageData.data) {
+      throw new Error('No image data returned from Gemini API. Response: ' + JSON.stringify(parts));
     }
-    
-    const imageBuffer = await imageResponse.buffer();
-    const base64Image = `data:image/png;base64,${imageBuffer.toString('base64')}`;
-    
+
+    // MIMEタイプとデータを取得
+    const mimeType = imageData.mimeType || imageData.mime_type || 'image/png';
+    const base64Data = imageData.data;
+    const base64Image = `data:${mimeType};base64,${base64Data}`;
+
     return {
       image: base64Image,
-      cost: config.pricing.replicate.sdxl
+      cost: 0.039, // Gemini 2.5 Flash Image: $0.039/画像 (1290トークン)
+      prompt: prompt,
+      analysis: {
+        model: modelName,
+        tokens: 1290 // 1画像 = 1290トークン
+      }
     };
+
   } catch (error) {
-    logger.error('Replicate API Error:', error);
-    
-    // クレジット不足エラーを分かりやすく処理
-    if (error.message && error.message.includes('402 Payment Required')) {
-      throw new Error('Replicate APIのクレジットが不足しています。https://replicate.com/account/billing でクレジットを購入してください。');
+    logger.error('Gemini API Error:', error);
+
+    if (error.message?.includes('API key') || error.message?.includes('API_KEY')) {
+      throw new Error('Gemini APIキーが無効です。Vercel環境変数にGEMINI_API_KEYを設定してください。');
     }
-    
+
+    if (error.message?.includes('not found') || error.message?.includes('models/')) {
+      throw new Error(`Gemini モデルが見つかりません: ${process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'}。正しいモデル名を確認してください。`);
+    }
+
     throw error;
   }
 }
+
 
 // 解像度を取得
 function getResolution(api) {
   switch (api) {
-    case 'openai':
-      return '1024x1024';
-    case 'stability':
-    case 'replicate':
+    case 'gemini':
       return '1024x1024';
     default:
-      return '512x512';
+      return '1024x1024';
   }
 }
 
 module.exports = {
   enhancePromptForJapan,
-  generateWithOpenAI,
-  generateWithStability,
-  generateWithReplicate,
+  generateWithGemini,
   getResolution
 };

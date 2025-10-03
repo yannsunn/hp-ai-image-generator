@@ -2,9 +2,7 @@ const { validateGenerateRequest } = require('../utils/input-validator');
 const { translateInstruction, translateInstructions } = require('../utils/japanese-to-english');
 const {
   enhancePromptForJapan,
-  generateWithOpenAI,
-  generateWithStability,
-  generateWithReplicate,
+  generateWithGemini,
   getResolution
 } = require('../utils/image-generators');
 const logger = require('../utils/logger');
@@ -68,46 +66,35 @@ async function batchGenerateImages(req, res) {
 
     // 生成枚数の検証は input-validator で実施済み
 
-    // API選択ロジック（環境変数ベース）
-    apiToUse = selectedApi.toLowerCase(); // 大文字小文字を正規化
-    
-    // 利用可能APIのリストを作成
-    const availableApis = [];
-    if (process.env.OPENAI_API_KEY) availableApis.push('openai');
-    if (process.env.STABILITY_API_KEY) availableApis.push('stability');
-    if (process.env.REPLICATE_API_TOKEN) availableApis.push('replicate');
-    
-    if (apiToUse === 'auto') {
-      if (availableApis.length === 0) {
-        return sendErrorResponse(res, 500, 'APIキーが設定されていません。Vercelの環境変数にAPIキーを設定してください');
-      }
-      // 優先順位: OpenAI > Stability > Replicate
-      apiToUse = availableApis[0];
+    // API選択ロジック（Gemini固定）
+    apiToUse = 'gemini';
+
+    // Gemini APIキーの確認
+    if (!process.env.GEMINI_API_KEY) {
+      return sendErrorResponse(res, 500, 'Gemini APIキーが設定されていません。Vercelの環境変数にGEMINI_API_KEYを設定してください');
     }
     
 
     const images = [];
     const errors = [];
     let totalCost = 0;
-    
-    // 大量生成時のタイムアウトを防ぐため、バッチ処理
-    // Replicate APIは遅いので2枚ずつ処理
-    const batchSize = apiToUse === 'replicate' ? 2 : 4;
+
+    // Gemini APIは高速なので4枚ずつ処理
+    const batchSize = 4;
     const results = [];
-    
-    
+
     for (let i = 0; i < count; i += batchSize) {
       const batch = [];
       for (let j = i; j < Math.min(i + batchSize, count); j++) {
-        batch.push(generateSingleImage(combinedPrompt, apiToUse, context, j, availableApis));
+        batch.push(generateSingleImage(combinedPrompt, context, j));
       }
-      
+
       const batchResults = await Promise.allSettled(batch);
       results.push(...batchResults);
-      
-      // バッチ間に少し待機（Replicateのレートリミット対策）
+
+      // バッチ間に少し待機（レートリミット対策）
       if (i + batchSize < count) {
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
     
@@ -176,84 +163,35 @@ async function batchGenerateImages(req, res) {
 }
 
 // 単一画像を生成
-async function generateSingleImage(prompt, apiToUse, context, index, availableApis = []) {
+async function generateSingleImage(prompt, context, index) {
   const startTime = Date.now();
-  
-  // 試したAPIの記録
-  const triedApis = [];
-  let lastError = null;
-  
-  // 指定されたAPIを優先して試し、失敗したら他のAPIを試す
-  const apisToTry = [apiToUse, ...availableApis.filter(api => api !== apiToUse)];
-  
-  for (const currentApi of apisToTry) {
-    if (triedApis.includes(currentApi)) continue;
-    
-    try {
-      let result;
-      triedApis.push(currentApi);
-      
-      switch (currentApi) {
-      case 'openai':
-        if (!process.env.OPENAI_API_KEY) {
-          throw new Error('OpenAI API key is not configured');
-        }
-        const japanesePromptOpenAI = enhancePromptForJapan(prompt, context);
-        result = await generateWithOpenAI(japanesePromptOpenAI, process.env.OPENAI_API_KEY, context);
-        break;
 
-      case 'stability':
-        if (!process.env.STABILITY_API_KEY) {
-          throw new Error('Stability AI API key is not configured');
-        }
-        const japanesePromptStability = enhancePromptForJapan(prompt, context);
-        result = await generateWithStability(japanesePromptStability, process.env.STABILITY_API_KEY, context);
-        break;
-
-      case 'replicate':
-        if (!process.env.REPLICATE_API_TOKEN) {
-          throw new Error('Replicate API token is not configured');
-        }
-        // 日本向けのプロンプトを強化
-        const japanesePrompt = enhancePromptForJapan(prompt, context);
-        result = await generateWithReplicate(japanesePrompt, process.env.REPLICATE_API_TOKEN, context);
-        break;
-
-        default:
-          // 無効なAPIが選択された場合
-          throw new Error(`無効なAPIが選択されました: ${currentApi}`);
-      }
-      
-      // 成功したら結果を返す
-      return {
-        image: result.image,
-        metadata: {
-          original_prompt: prompt,
-          enhanced_prompt: prompt + ' - Professional Japanese style',
-          api_used: currentApi,
-          cost: result.cost,
-          generation_time: Date.now() - startTime,
-          resolution: getResolution(currentApi),
-          format: 'PNG/JPEG',
-          tried_apis: triedApis
-        }
-      };
-    } catch (error) {
-      logger.error(`Generation error for image ${index} with ${currentApi}:`, error);
-      lastError = error;
-      
-      // クレジット不足エラーの場合は、他のAPIを試す
-      if (error.message && (error.message.includes('クレジット') || error.message.includes('402'))) {
-        continue;
-      }
-      
-      // その他のエラーの場合も次のAPIを試す
-      continue;
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      throw new Error('Gemini API key is not configured');
     }
+
+    // 日本向けのプロンプトを強化
+    const japanesePrompt = enhancePromptForJapan(prompt, context);
+    const result = await generateWithGemini(japanesePrompt, process.env.GEMINI_API_KEY, context);
+
+    // 成功したら結果を返す
+    return {
+      image: result.image,
+      metadata: {
+        original_prompt: prompt,
+        enhanced_prompt: japanesePrompt,
+        api_used: 'gemini',
+        cost: result.cost,
+        generation_time: Date.now() - startTime,
+        resolution: getResolution('gemini'),
+        format: 'PNG',
+        model: result.analysis?.model || 'gemini-2.5-flash-image'
+      }
+    };
+  } catch (error) {
+    logger.error(`Generation error for image ${index} with Gemini:`, error);
+    throw new Error(`画像生成に失敗しました: ${error.message || 'Unknown error'}`);
   }
-  
-  // すべてのAPIが失敗した場合
-  logger.error(`All APIs failed for image ${index}:`, triedApis);
-  throw new Error(`すべてのAPIで生成に失敗しました (${triedApis.join(', ')}): ${lastError?.message || 'Unknown error'}`);
 }
 

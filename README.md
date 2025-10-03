@@ -11,10 +11,11 @@
 ## 🌟 主要機能
 
 ### 🎨 AI画像生成
-- **マルチプロバイダー対応**: OpenAI DALL-E 3, Stability AI, Replicate
+- **Gemini 2.5 Flash Image (Nano Banana)**: 最先端の画像生成モデル
 - **日本語プロンプト最適化**: 自動翻訳と日本スタイル強化
 - **バッチ生成**: 複数画像の同時生成
 - **スマートキャッシング**: 高速レスポンスとコスト削減
+- **SynthID透かし**: AI生成画像の自動透かし付与
 
 ### 🔍 サイト解析
 - **URL自動解析**: コンテンツとデザイン要素の抽出
@@ -108,10 +109,10 @@ npm run build:ts
 ## 🔧 環境変数
 
 ```env
-# AI API Keys (最低1つ必須)
-OPENAI_API_KEY=sk-...
-STABILITY_API_KEY=sk-...
-REPLICATE_API_TOKEN=r8_...
+# AI API Keys - Gemini必須
+GEMINI_API_KEY=your-gemini-api-key
+GEMINI_TEXT_MODEL=gemini-2.5-flash
+GEMINI_IMAGE_MODEL=gemini-2.5-flash-image
 
 # Vercel KV (オプション - 画像履歴保存用)
 KV_REST_API_URL=https://...
@@ -219,10 +220,9 @@ npm run test:e2e
 
 ## 🙏 謝辞
 
-- OpenAI - DALL-E 3 API
-- Stability AI - Stable Diffusion API
-- Replicate - モデルホスティング
+- Google - Gemini 2.5 Flash Image API (Nano Banana)
 - Vercel - ホスティングとエッジ関数
+- Google AI - 生成AIテクノロジー
 
 ---
 

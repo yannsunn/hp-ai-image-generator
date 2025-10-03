@@ -8,14 +8,11 @@
     "dev": "node index.js"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.21.0",
     "@vercel/kv": "^1.0.0",
     "cheerio": "^1.0.0-rc.12",
     "node-fetch": "^2.6.7",
-    "openai": "^4.52.1",
-    "replicate": "^0.29.0",
-    "uuid": "^9.0.0",
-    "@sentry/node": "^7.81.1",
-    "@sentry/profiling-node": "^7.81.1"
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.19",

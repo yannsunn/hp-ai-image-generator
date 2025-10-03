@@ -4,7 +4,7 @@ export interface ImageGenerationFormData {
   targetAudience?: string;
   industry?: string;
   contentType?: string;
-  provider: 'openai' | 'stability' | 'replicate' | 'auto';
+  provider: 'gemini' | 'auto';
   additionalPrompts: string[];
   saveToHistory: boolean;
 }

@@ -1,5 +1,3 @@
-import OpenAI from 'openai';
-import Replicate from 'replicate';
 import fetch from 'node-fetch';
 const logger = require('./utils/logger.ts');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
@@ -31,11 +29,9 @@ export default async function handler(req, res) {
     // Available APIs endpoint
     if (path === 'apis/available' && method === 'POST') {
       const available = [];
-      
-      if (process.env.OPENAI_API_KEY) available.push('openai');
-      if (process.env.STABILITY_API_KEY) available.push('stability');
-      if (process.env.REPLICATE_API_TOKEN) available.push('replicate');
-      
+
+      if (process.env.GEMINI_API_KEY) available.push('gemini');
+
       return sendSuccessResponse(res, {
         available,
         count: available.length
@@ -66,40 +62,33 @@ export default async function handler(req, res) {
         };
 
         // 環境変数に基づいて推奨APIを設定
-        if (process.env.OPENAI_API_KEY) analysisData.recommended_apis.push('openai');
-        if (process.env.STABILITY_API_KEY) analysisData.recommended_apis.push('stability');
-        if (process.env.REPLICATE_API_TOKEN) analysisData.recommended_apis.push('replicate');
-        
+        if (process.env.GEMINI_API_KEY) analysisData.recommended_apis.push('gemini');
+
         if (analysisData.recommended_apis.length === 0) {
-          return sendErrorResponse(res, 500, 'APIキーが設定されていません。.envファイルを確認してください。');
+          return sendErrorResponse(res, 500, 'Gemini APIキーが設定されていません。Vercel環境変数を確認してください。');
         }
 
-        // OpenAIでプロンプト解析を実行（APIキーがある場合）
-        if (process.env.OPENAI_API_KEY && prompt.length > 10) {
+        // Geminiでプロンプト解析を実行（APIキーがある場合）
+        if (process.env.GEMINI_API_KEY && prompt.length > 10) {
           try {
-            const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-            const completion = await openai.chat.completions.create({
-              model: 'gpt-4o-mini',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'あなたは日本のプロフェッショナルなウェブデザイナーであり、AI画像生成のエキスパートです。ユーザーが入力したプロンプトを、ホームページ用の高品質なビジネス画像生成に最適化してください。\n\n重要なポイント:\n- プロフェッショナルで信頼感のあるビジュアル\n- 日本のビジネス文化に適したデザイン\n- ウェブサイトでの使用に適したアスペクト比やサイズ\n- ターゲットユーザーに訴求する魅力的なビジュアル\n\n最適化されたプロンプトのみを返し、説明は不要です。'
-                },
-                {
-                  role: 'user',
-                  content: `業界: ${context.industry || '一般'}
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({
+              model: process.env.GEMINI_TEXT_MODEL || 'gemini-2.5-flash'
+            });
+
+            const result = await model.generateContent(`あなたは日本のプロフェッショナルなウェブデザイナーであり、AI画像生成のエキスパートです。
+
+業界: ${context.industry || '一般'}
 コンテンツタイプ: ${context.contentType || 'ヒーロー'}
 ユーザープロンプト: "${prompt}"
 
-このプロンプトを、${context.industry || '一般'}業界のホームページ用${context.contentType || 'ヒーロー'}セクションに適した、プロフェッショナルな日本語ビジネス画像生成用に最適化してください。`
-                }
-              ],
-              max_tokens: 150,
-              temperature: 0.4
-            });
-            
-            enhancedPrompt = completion.choices[0]?.message?.content || enhancedPrompt;
-          } catch (openaiError) {
+このプロンプトを、${context.industry || '一般'}業界のホームページ用${context.contentType || 'ヒーロー'}セクションに適した、プロフェッショナルな英語ビジネス画像生成用プロンプトに最適化してください。最適化されたプロンプトのみを返し、説明は不要です。`);
+
+            const response = await result.response;
+            enhancedPrompt = response.text() || enhancedPrompt;
+          } catch (geminiError) {
+            logger.error('Gemini analysis error:', geminiError);
             enhancedPrompt = `${prompt} - Professional Japanese business style, high quality, modern design`;
           }
         } else {

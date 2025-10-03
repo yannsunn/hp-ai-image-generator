@@ -1124,12 +1124,13 @@ const ImageGenerationForm: React.FC = () => {
                       <strong>解決方法:</strong>
                     </p>
                     <ol className="mt-2 text-sm text-yellow-700 list-decimal list-inside space-y-1">
-                      <li><a href="https://replicate.com/account/billing" target="_blank" rel="noopener noreferrer" className="underline">Replicateアカウント</a>にアクセス</li>
-                      <li>クレジットを購入（最低$5から）</li>
-                      <li>購入後、数分待ってから再度お試しください</li>
+                      <li><a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google AI Studio</a>にアクセス</li>
+                      <li>Gemini APIキーを確認またはクレジットを追加</li>
+                      <li>Vercel環境変数にGEMINI_API_KEYを設定</li>
+                      <li>プロジェクトを再デプロイして反映</li>
                     </ol>
                     <p className="mt-2 text-xs text-yellow-600">
-                      代替案: OpenAIまたはStability AIのAPIを使用することもできます
+                      Gemini 2.5 Flash Imageは1画像あたり$0.039のコストです
                     </p>
                   </div>
                 )}

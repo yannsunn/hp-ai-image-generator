@@ -2,9 +2,9 @@
 declare namespace NodeJS {
   interface ProcessEnv {
     NODE_ENV: 'development' | 'production' | 'test'
-    OPENAI_API_KEY: string
-    STABILITY_API_KEY: string
-    REPLICATE_API_TOKEN: string
+    GEMINI_API_KEY: string
+    GEMINI_TEXT_MODEL?: string
+    GEMINI_IMAGE_MODEL?: string
     KV_REST_API_URL?: string
     KV_REST_API_TOKEN?: string
     CORS_ORIGIN?: string
@@ -32,7 +32,7 @@ export interface ApiResponse<T> {
 
 // 画像生成関連の型定義
 export interface GenerateImageRequest {
-  provider: 'openai' | 'stability' | 'replicate'
+  provider: 'gemini' | 'auto'
   prompt: string
   negativePrompt?: string
   style?: string

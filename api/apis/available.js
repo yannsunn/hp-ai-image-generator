@@ -15,14 +15,13 @@ export default function handler(req, res) {
 
   if (req.method === 'POST') {
     const available = [];
-    
-    if (process.env.OPENAI_API_KEY) available.push('openai');
-    if (process.env.STABILITY_API_KEY) available.push('stability');
-    if (process.env.REPLICATE_API_TOKEN) available.push('replicate');
-    
+
+    if (process.env.GEMINI_API_KEY) available.push('gemini');
+
     return res.status(200).json({
       available,
-      count: available.length
+      count: available.length,
+      model: process.env.GEMINI_IMAGE_MODEL || 'gemini-2.5-flash-image'
     });
   }
 
