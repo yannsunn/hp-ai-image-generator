@@ -163,6 +163,13 @@ export interface AnalysisResponse {
     tone: string;
     atmosphere: string[];
     color_hints?: string[];
+    design_style?: string;
+  };
+  visual_analysis?: {
+    color_scheme?: string;
+    layout_style?: string;
+    image_style?: string;
+    ui_elements?: string;
   };
   target_audience?: string;
   key_features?: string[];
@@ -170,12 +177,16 @@ export interface AnalysisResponse {
     composition?: string;
     lighting?: string;
     perspective?: string;
+    style_match?: string;
   };
   generated_image?: {
     image: string;
     cost: number;
     model: string;
   };
+  screenshot?: string;
+  analysis_method?: string;
+  method?: string;
   analyzed_at?: string;
   error?: string;
 }

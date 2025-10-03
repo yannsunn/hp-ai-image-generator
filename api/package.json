@@ -12,6 +12,7 @@
     "@vercel/kv": "^1.0.0",
     "cheerio": "^1.0.0-rc.12",
     "node-fetch": "^2.6.7",
+    "playwright-core": "^1.49.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

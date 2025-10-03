@@ -51,9 +51,8 @@ async function analyzeWithPlaywright(req, res) {
 
     logger.info('Playwright analysis started for:', validatedUrl);
 
-    // Playwright MCPは現在利用できないため、代替実装を使用
-    // TODO: Playwright MCP統合時に置き換え
-    const analysisResult = await analyzeWithCheerioAndGemini(validatedUrl);
+    // Playwrightを使用した実装（フォールバックとしてCheerioを使用）
+    const analysisResult = await analyzeWithPlaywrightAndGemini(validatedUrl);
 
     if (!analysisResult.success) {
       sendErrorResponse(res, 400, analysisResult.error || 'Analysis failed', analysisResult.details);
@@ -116,8 +115,94 @@ async function analyzeWithPlaywright(req, res) {
   }
 }
 
-// Cheerio + Geminiを使用した分析（Playwright統合前の代替実装）
-async function analyzeWithCheerioAndGemini(url) {
+// Playwright + Geminiを使用した分析（フォールバック: Cheerio）
+async function analyzeWithPlaywrightAndGemini(url) {
+  const { getPageSnapshot, getPageScreenshot, isPlaywrightAvailable } = require('./utils/playwright-helper');
+
+  // Playwrightが利用可能かチェック
+  const playwrightAvailable = await isPlaywrightAvailable();
+
+  if (playwrightAvailable) {
+    logger.info('Using Playwright for analysis');
+
+    try {
+      // Phase 1: Playwrightでページスナップショットを取得
+      const snapshotResult = await getPageSnapshot(url);
+
+      if (snapshotResult.success) {
+        // Phase 2: スクリーンショットも取得（視覚的分析用）
+        const screenshotResult = await getPageScreenshot(url);
+
+        const { analyzeWebsiteContent, analyzeWebsiteVisually } = require('./utils/gemini-analyzer');
+
+        let analysisResult;
+
+        // スクリーンショットが取得できた場合はマルチモーダル分析を使用
+        if (screenshotResult.success && screenshotResult.screenshot) {
+          logger.info('Using multimodal visual analysis with screenshot');
+          analysisResult = await analyzeWebsiteVisually({
+            title: snapshotResult.title,
+            description: snapshotResult.description || '',
+            textContent: snapshotResult.bodyText
+          }, screenshotResult.screenshot, url);
+        } else {
+          // スクリーンショット取得失敗時はテキスト分析のみ
+          logger.info('Using text-only analysis (screenshot unavailable)');
+          analysisResult = await analyzeWebsiteContent({
+            title: snapshotResult.title,
+            description: snapshotResult.description || '',
+            textContent: snapshotResult.bodyText
+          }, url);
+        }
+
+        if (!analysisResult.success) {
+          throw new Error(analysisResult.error || 'Gemini analysis failed');
+        }
+
+        const analysisData = analysisResult.analysis;
+
+        // ヒーロー画像用のプロンプトを優先的に選択
+        const heroPrompt = analysisData.suggested_prompts?.find(p => p.type === 'hero');
+        const suggestedPrompt = heroPrompt?.prompt ||
+                               analysisData.suggested_prompts?.[0]?.prompt ||
+                               `Professional ${analysisData.industry} business image for ${snapshotResult.title} website`;
+
+        return {
+          success: true,
+          url,
+          title: snapshotResult.title,
+          content: {
+            description: snapshotResult.description || '',
+            text_preview: snapshotResult.bodyText.substring(0, 500)
+          },
+          industry: analysisData.industry || 'other',
+          industry_confidence: analysisData.industry_confidence || 'medium',
+          content_type: analysisData.content_type || 'hero',
+          detected_themes: analysisData.detected_themes || [],
+          visual_style: analysisData.visual_style || {},
+          visual_analysis: analysisData.visual_analysis || null,
+          target_audience: analysisData.target_audience || 'general',
+          key_features: analysisData.key_features || [],
+          suggested_prompts: analysisData.suggested_prompts || [],
+          suggested_prompt: suggestedPrompt,
+          image_recommendations: analysisData.image_recommendations || {},
+          screenshot: screenshotResult.success ? screenshotResult.screenshot : null,
+          analysis_method: analysisResult.method || 'playwright-gemini',
+          method: 'playwright-gemini'
+        };
+      }
+    } catch (playwrightError) {
+      logger.warn('Playwright failed, falling back to Cheerio:', playwrightError.message);
+    }
+  }
+
+  // フォールバック: Cheerio + Gemini
+  logger.info('Using Cheerio fallback for analysis');
+  return await analyzeWithCheerioFallback(url);
+}
+
+// Cheerio + Geminiを使用した分析（フォールバック実装）
+async function analyzeWithCheerioFallback(url) {
   try {
     const fetch = require('node-fetch');
     const cheerio = require('cheerio');
