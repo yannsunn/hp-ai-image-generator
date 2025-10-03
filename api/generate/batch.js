@@ -6,11 +6,8 @@ const {
   getResolution
 } = require('../utils/image-generators');
 const logger = require('../utils/logger');
-
-// レート制限ミドルウェア
-const rateLimitMiddleware = createRateLimitMiddleware('generate/batch');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
-const { createRateLimitMiddleware } = require('../utils/rate-limiter');
+const { rateLimiter } = require('../utils/rate-limiter');
 
 
 module.exports = async function handler(req, res) {
@@ -29,15 +26,15 @@ module.exports = async function handler(req, res) {
   }
 
   // レート制限チェック
-  return new Promise((resolve, reject) => {
-    rateLimitMiddleware(req, res, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(batchGenerateImages(req, res));
-      }
-    });
-  });
+  const rateLimitResult = rateLimiter.checkApiLimit(req, 'generate/batch');
+  if (!rateLimitResult.allowed) {
+    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
+    res.setHeader('Retry-After', retryAfter.toString());
+    return sendErrorResponse(res, 429, 'レート制限に達しました',
+      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
+  }
+
+  return batchGenerateImages(req, res);
 };
 
 async function batchGenerateImages(req, res) {
