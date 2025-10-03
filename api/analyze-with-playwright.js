@@ -3,6 +3,8 @@ const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./ut
 const { validateUrl } = require('./utils/input-validator');
 const { rateLimiter } = require('./utils/rate-limiter');
 const { withErrorHandler } = require('./utils/global-error-handler');
+const { getCachedAnalysis, setCachedAnalysis } = require('./utils/cache-helper');
+const { auditUrlAnalysis, auditRateLimitViolation } = require('./utils/audit-logger');
 
 async function handler(req, res) {
   // CORS設定（セキュア）
@@ -22,8 +24,9 @@ async function handler(req, res) {
   }
 
   // レート制限チェック
-  const rateLimitResult = rateLimiter.checkApiLimit(req, 'analyze-with-playwright');
+  const rateLimitResult = await rateLimiter.checkApiLimit(req, 'analyze-with-playwright');
   if (!rateLimitResult.allowed) {
+    await auditRateLimitViolation(req, 'analyze-with-playwright');
     const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
     res.setHeader('Retry-After', retryAfter.toString());
     sendErrorResponse(res, 429, 'レート制限に達しました',
@@ -38,7 +41,7 @@ module.exports = withErrorHandler(handler);
 
 async function analyzeWithPlaywright(req, res) {
   try {
-    const { url, generateImage = true } = req.body;
+    const { url, generateImage = true, useCache = true } = req.body;
 
     // 入力検証
     const urlValidation = validateUrl(url);
@@ -50,6 +53,50 @@ async function analyzeWithPlaywright(req, res) {
     const validatedUrl = urlValidation.sanitized;
 
     logger.info('Playwright analysis started for:', validatedUrl);
+
+    // キャッシュチェック
+    if (useCache) {
+      const cachedResult = await getCachedAnalysis(validatedUrl);
+      if (cachedResult) {
+        logger.info('Returning cached analysis result');
+
+        // 画像生成が要求された場合のみ生成
+        let generatedImage = null;
+        if (generateImage && cachedResult.suggested_prompt) {
+          try {
+            const { generateWithGemini } = require('./utils/image-generators');
+            if (process.env.GEMINI_API_KEY) {
+              const imageResult = await generateWithGemini(
+                cachedResult.suggested_prompt,
+                process.env.GEMINI_API_KEY,
+                {
+                  industry: cachedResult.industry,
+                  contentType: cachedResult.content_type
+                }
+              );
+              generatedImage = {
+                image: imageResult.image,
+                cost: imageResult.cost,
+                model: imageResult.analysis?.model || 'gemini-2.5-flash-image'
+              };
+            }
+          } catch (imageError) {
+            logger.error('Image generation error:', imageError);
+          }
+        }
+
+        const cachedResponse = {
+          ...cachedResult,
+          generated_image: generatedImage,
+          from_cache: true
+        };
+
+        // 監査ログ記録
+        await auditUrlAnalysis(req, validatedUrl, cachedResponse);
+
+        return res.status(200).json(cachedResponse);
+      }
+    }
 
     // Playwrightを使用した実装（フォールバックとしてCheerioを使用）
     const analysisResult = await analyzeWithPlaywrightAndGemini(validatedUrl);
@@ -95,17 +142,29 @@ async function analyzeWithPlaywright(req, res) {
       url: validatedUrl,
       title: analysisResult.title,
       content: analysisResult.content,
-      analysis: {
-        industry: analysisResult.industry,
-        content_type: analysisResult.content_type,
-        detected_themes: analysisResult.detected_themes || [],
-        visual_style: analysisResult.visual_style || {},
-        method: 'gemini-cheerio' // TODO: 'playwright-gemini' に変更
-      },
+      industry: analysisResult.industry,
+      industry_confidence: analysisResult.industry_confidence,
+      content_type: analysisResult.content_type,
+      detected_themes: analysisResult.detected_themes || [],
+      visual_style: analysisResult.visual_style || {},
+      visual_analysis: analysisResult.visual_analysis || null,
+      target_audience: analysisResult.target_audience,
+      key_features: analysisResult.key_features || [],
+      suggested_prompts: analysisResult.suggested_prompts || [],
       suggested_prompt: analysisResult.suggested_prompt,
+      image_recommendations: analysisResult.image_recommendations || {},
+      screenshot: analysisResult.screenshot || null,
+      analysis_method: analysisResult.method || 'gemini-cheerio',
       generated_image: generatedImage,
-      analyzed_at: new Date().toISOString()
+      analyzed_at: new Date().toISOString(),
+      from_cache: false
     };
+
+    // 分析結果をキャッシュに保存（24時間）
+    await setCachedAnalysis(validatedUrl, response, 86400);
+
+    // 監査ログ記録
+    await auditUrlAnalysis(req, validatedUrl, response);
 
     res.status(200).json(response);
 

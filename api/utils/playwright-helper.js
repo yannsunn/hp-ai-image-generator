@@ -1,5 +1,64 @@
 const logger = require('./logger');
 
+// ブラウザインスタンスのプール管理
+let browserInstance = null;
+let browserLastUsed = Date.now();
+const BROWSER_TIMEOUT = 5 * 60 * 1000; // 5分間未使用で自動クローズ
+
+// 定期的なブラウザクリーンアップ
+setInterval(async () => {
+  if (browserInstance && Date.now() - browserLastUsed > BROWSER_TIMEOUT) {
+    logger.info('Closing idle browser instance');
+    try {
+      await browserInstance.close();
+      browserInstance = null;
+    } catch (error) {
+      logger.error('Error closing browser:', error);
+      browserInstance = null;
+    }
+  }
+}, 60 * 1000); // 1分毎にチェック
+
+/**
+ * ブラウザインスタンスを取得（プール化）
+ */
+async function getBrowser() {
+  const playwright = await import('playwright-core');
+  const chromium = playwright.chromium;
+
+  // 既存のブラウザが利用可能かチェック
+  if (browserInstance) {
+    try {
+      // ブラウザが生きているか確認
+      const contexts = browserInstance.contexts();
+      if (contexts) {
+        browserLastUsed = Date.now();
+        logger.info('Reusing existing browser instance');
+        return browserInstance;
+      }
+    } catch (error) {
+      logger.warn('Existing browser is dead, creating new one');
+      browserInstance = null;
+    }
+  }
+
+  // 新しいブラウザを起動
+  logger.info('Launching new Playwright browser instance');
+  browserInstance = await chromium.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--disable-web-security'  // CORS回避（スクレイピング用）
+    ]
+  });
+
+  browserLastUsed = Date.now();
+  return browserInstance;
+}
+
 /**
  * Playwrightを使用してページのスナップショットを取得
  * Note: Vercel環境で動作する実装
@@ -8,22 +67,9 @@ const logger = require('./logger');
  */
 async function getPageSnapshot(url) {
   try {
-    // Playwrightパッケージの動的インポート
-    const playwright = await import('playwright-core');
-    const chromium = playwright.chromium;
+    const browser = await getBrowser();
 
-    logger.info('Launching Playwright browser for:', url);
-
-    // ブラウザを起動（Vercel環境対応）
-    const browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    });
+    logger.info('Creating browser context for:', url);
 
     const context = await browser.newContext({
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -60,7 +106,8 @@ async function getPageSnapshot(url) {
       return meta ? meta.getAttribute('content') : '';
     });
 
-    await browser.close();
+    // コンテキストのみクローズ（ブラウザは再利用）
+    await context.close();
 
     logger.info('Playwright snapshot captured successfully');
 
@@ -91,20 +138,9 @@ async function getPageSnapshot(url) {
  */
 async function getPageScreenshot(url) {
   try {
-    const playwright = await import('playwright-core');
-    const chromium = playwright.chromium;
+    const browser = await getBrowser();
 
     logger.info('Taking screenshot with Playwright for:', url);
-
-    const browser = await chromium.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu'
-      ]
-    });
 
     const context = await browser.newContext({
       viewport: { width: 1920, height: 1080 }
@@ -123,7 +159,8 @@ async function getPageScreenshot(url) {
       encoding: 'base64'
     });
 
-    await browser.close();
+    // コンテキストのみクローズ（ブラウザは再利用）
+    await context.close();
 
     logger.info('Playwright screenshot captured successfully');
 

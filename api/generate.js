@@ -9,6 +9,7 @@ const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./ut
 const { validateGenerateRequest } = require('./utils/input-validator');
 const { rateLimiter } = require('./utils/rate-limiter');
 const { withErrorHandler } = require('./utils/global-error-handler');
+const { auditImageGeneration, auditApiError, auditRateLimitViolation } = require('./utils/audit-logger');
 
 async function handler(req, res) {
   // CORS設定（セキュア）
@@ -28,11 +29,12 @@ async function handler(req, res) {
   }
 
   // レート制限チェック
-  const rateLimitResult = rateLimiter.checkApiLimit(req, 'generate');
+  const rateLimitResult = await rateLimiter.checkApiLimit(req, 'generate');
   if (!rateLimitResult.allowed) {
+    await auditRateLimitViolation(req, 'generate');
     const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
     res.setHeader('Retry-After', retryAfter.toString());
-    sendErrorResponse(res, 429, 'レート制限に達しました', 
+    sendErrorResponse(res, 429, 'レート制限に達しました',
       `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
     return;
   }
@@ -101,7 +103,7 @@ async function generateImage(req, res) {
       }
       
       // 成功レスポンス
-      sendSuccessResponse(res, {
+      const responseData = {
         image: result.image,
         metadata: {
           original_prompt: prompt,
@@ -114,16 +116,21 @@ async function generateImage(req, res) {
             translated_instructions: translatedInstructions
           }
         }
-      });
+      };
+
+      // 監査ログ記録
+      await auditImageGeneration(req, responseData);
+
+      sendSuccessResponse(res, responseData);
       
     } catch (apiError) {
       logger.error(`${apiToUse} API error:`, apiError);
-      
+
       // APIエラーの詳細なメッセージを構築
       let errorMessage = '画像生成に失敗しました';
       let errorDetails = apiError.message;
-      
-      if (apiError.message.includes('insufficient_quota') || 
+
+      if (apiError.message.includes('insufficient_quota') ||
           apiError.message.includes('billing') ||
           apiError.message.includes('credits')) {
         errorMessage = 'APIのクレジットが不足しています';
@@ -135,7 +142,13 @@ async function generateImage(req, res) {
         errorMessage = 'APIキーが無効です';
         errorDetails = '環境変数のAPIキーを確認してください';
       }
-      
+
+      // 監査ログ記録
+      await auditApiError(req, 'image_generation_failed', errorMessage, {
+        api: apiToUse,
+        error_details: errorDetails
+      });
+
       sendErrorResponse(res, 500, errorMessage, errorDetails);
     }
     
