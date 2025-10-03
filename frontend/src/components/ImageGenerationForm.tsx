@@ -178,11 +178,14 @@ const ImageGenerationForm: React.FC = () => {
         setIsAnalyzingUrl(false);
         
       } else {
-        // 単純解析（新しい自動推測機能付き）
-        const response = await fetch('/api/analyze-url', {
+        // Gemini 2.5 Flash統合分析（Playwright + 詳細分析）
+        const response = await fetch('/api/analyze-with-playwright', {
           method: 'POST',
           headers: getBypassHeaders(),
-          body: JSON.stringify({ url })
+          body: JSON.stringify({
+            url,
+            generateImage: false  // 分析のみ、画像生成は後で行う
+          })
         });
 
         const data: AnalysisResponse = await response.json();
@@ -194,28 +197,31 @@ const ImageGenerationForm: React.FC = () => {
         if (data.success) {
           setUrlContent(data.content || null);
           setPrompt(data.suggested_prompt || '');
-          
+
           // 自動推測された業界とコンテンツタイプを設定
           setContext({
             industry: data.industry || '',
             contentType: data.content_type || 'hero'
           });
 
-          // 複数のコンテンツタイプが検出された場合は自動選択
-          if (data.detected_content_types && data.detected_content_types.length > 0) {
-            setSelectedContentTypes(data.detected_content_types.slice(0, 3)); // 上位3つまで自動選択
+          // 検出されたテーマをコンテンツタイプとして設定
+          if (data.detected_themes && data.detected_themes.length > 0) {
+            setSelectedContentTypes(data.detected_themes.slice(0, 3)); // 上位3つまで
           }
 
-          // 分析結果をプロンプト解析に反映
-          if (data.analysis) {
-            setPromptAnalysis(prev => ({
-              style_suggestions: prev?.style_suggestions || [],
-              color_palette: prev?.color_palette || [],
-              themes: prev?.themes || [],
-              industry_confidence: data.analysis?.industry_confidence,
-              detected_themes: data.analysis?.detected_themes || [],
-              analysis_method: data.analysis?.analysis_method
-            }));
+          // 詳細分析結果をプロンプト解析に反映
+          setPromptAnalysis({
+            style_suggestions: data.visual_style?.atmosphere || [],
+            color_palette: data.visual_style?.color_hints || [],
+            themes: data.detected_themes || [],
+            industry_confidence: data.industry_confidence || 'medium',
+            detected_themes: data.detected_themes || [],
+            analysis_method: 'gemini-cheerio'
+          });
+
+          // 複数のプロンプト候補がある場合は表示
+          if (data.suggested_prompts && data.suggested_prompts.length > 0) {
+            logger.info('複数のプロンプト候補:', data.suggested_prompts);
           }
         }
         setIsAnalyzingUrl(false);

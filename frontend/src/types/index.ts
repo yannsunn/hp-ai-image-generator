@@ -142,12 +142,19 @@ export interface GenerationResponse {
 
 export interface AnalysisResponse {
   success: boolean;
+  url?: string;
+  title?: string;
   analysis?: PromptAnalysis;
   content?: UrlContent;
   suggested_prompt?: string;
+  suggested_prompts?: Array<{
+    type: string;
+    prompt: string;
+  }>;
   industry?: string;
   content_type?: string;
   detected_content_types?: string[];
+  detected_themes?: string[];
   pages_analyzed?: number;
   pages_found?: number;
   industry_confidence?: 'high' | 'medium' | 'low';
@@ -157,6 +164,19 @@ export interface AnalysisResponse {
     atmosphere: string[];
     color_hints?: string[];
   };
+  target_audience?: string;
+  key_features?: string[];
+  image_recommendations?: {
+    composition?: string;
+    lighting?: string;
+    perspective?: string;
+  };
+  generated_image?: {
+    image: string;
+    cost: number;
+    model: string;
+  };
+  analyzed_at?: string;
   error?: string;
 }
 
