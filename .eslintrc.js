@@ -65,6 +65,19 @@ module.exports = {
       }
     },
     {
+      files: ['api/**/*.js'],
+      rules: {
+        'no-console': 'off', // APIファイルではデバッグログを許可
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-floating-promises': 'off',
+        'curly': 'off'
+      }
+    },
+    {
       files: ['tests/**/*.js', '**/*.test.js', 'tests/**/*.ts', '**/*.test.ts'],
       env: {
         jest: true
