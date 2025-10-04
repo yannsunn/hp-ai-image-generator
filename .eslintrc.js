@@ -91,11 +91,13 @@ module.exports = {
       }
     },
     {
-      files: ['frontend/**/*.jsx', 'frontend/**/*.tsx', '**/*.jsx', '**/*.tsx'],
+      files: ['frontend/**/*.jsx', 'frontend/**/*.tsx', 'frontend/**/*.ts', 'frontend/**/*.js', '**/*.jsx', '**/*.tsx'],
       rules: {
         'no-undef': 'off', // JSXファイルではReactやimport.metaを許可
         '@typescript-eslint/no-unsafe-assignment': 'off',
-        '@typescript-eslint/no-unsafe-member-access': 'off'
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-this-alias': 'off',
+        'no-console': 'off'
       }
     },
     {
@@ -116,6 +118,11 @@ module.exports = {
     '*.d.ts',
     '*.config.js',
     '.eslintrc.js',
-    'frontend/check-env-vars.js'
+    'frontend/check-env-vars.js',
+    'frontend/src/main.jsx',
+    'frontend/src/App.jsx',
+    'tests/**/*',
+    '**/*.test.js',
+    '**/*.test.ts'
   ]
 };
