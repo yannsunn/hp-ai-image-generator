@@ -45,10 +45,24 @@ const ImageGenerationForm: React.FC = () => {
         })
       });
 
-      const data = await response.json();
+      // レスポンスのテキストを取得
+      const text = await response.text();
+
+      // 空のレスポンスチェック
+      if (!text) {
+        throw new Error('サーバーから空のレスポンスが返されました。APIキーまたは環境変数を確認してください。');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', text);
+        throw new Error(`レスポンスの解析に失敗: ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || 'URL解析に失敗しました');
+        throw new Error(data.error || `URL解析に失敗しました (${response.status})`);
       }
 
       if (data.success) {
@@ -63,6 +77,7 @@ const ImageGenerationForm: React.FC = () => {
         setAnalysisInfo(info.join(' / '));
       }
     } catch (err) {
+      console.error('Analysis Error:', err);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setIsAnalyzing(false);
@@ -89,16 +104,31 @@ const ImageGenerationForm: React.FC = () => {
         })
       });
 
-      const data = await response.json();
+      // レスポンスのテキストを取得
+      const text = await response.text();
+
+      // 空のレスポンスチェック
+      if (!text) {
+        throw new Error('サーバーから空のレスポンスが返されました。APIキーまたは環境変数を確認してください。');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', text);
+        throw new Error(`レスポンスの解析に失敗: ${text.substring(0, 100)}`);
+      }
 
       if (!response.ok) {
-        throw new Error(data.error || '画像生成に失敗しました');
+        throw new Error(data.error || `画像生成に失敗しました (${response.status})`);
       }
 
       if (data.success && data.image) {
         setGeneratedImage(data.image);
       }
     } catch (err) {
+      console.error('Generation Error:', err);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
       setIsGenerating(false);
