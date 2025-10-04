@@ -47,14 +47,25 @@ module.exports = withErrorHandler(handler);
 
 async function generateImage(req, res) {
   try {
+    console.log('=== Generate Image Request ===');
+    console.log('Body:', JSON.stringify(req.body));
+    console.log('Environment:', {
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '設定済み (長さ: ' + process.env.GEMINI_API_KEY.length + ')' : '未設定',
+      GEMINI_IMAGE_MODEL: process.env.GEMINI_IMAGE_MODEL || '未設定',
+      NODE_ENV: process.env.NODE_ENV
+    });
+
     const validation = validateGenerateRequest(req.body);
     if (!validation.valid) {
+      console.error('Validation failed:', validation.error);
       sendErrorResponse(res, 400, validation.error);
       return;
     }
 
     const validatedRequest = validation.sanitized;
     let { prompt, additionalInstructions = [], api, context } = validatedRequest;
+
+    console.log('Validated request:', { prompt, api, context });
     
     // 日本語の追加指示を英語に翻訳
     const translatedInstructions = await translateInstructions(additionalInstructions);
@@ -80,20 +91,26 @@ async function generateImage(req, res) {
     }
 
     let result;
-    
+
     try {
+      console.log('API selection:', apiToUse);
+      console.log('Combined prompt:', combinedPrompt);
+
       switch (apiToUse) {
         case 'gemini':
           if (!process.env.GEMINI_API_KEY) {
+            console.error('GEMINI_API_KEY not set!');
             sendErrorResponse(res, 400, 'Gemini APIキーが設定されていません',
               'Vercel環境変数にGEMINI_API_KEYを設定してください');
             return;
           }
+          console.log('Calling generateWithGemini...');
           result = await generateWithGemini(
             combinedPrompt,
             process.env.GEMINI_API_KEY,
             context
           );
+          console.log('generateWithGemini completed successfully');
           break;
 
         default:
@@ -124,6 +141,14 @@ async function generateImage(req, res) {
       sendSuccessResponse(res, responseData);
       
     } catch (apiError) {
+      console.error('=== API Error Caught ===');
+      console.error('API:', apiToUse);
+      console.error('Error Message:', apiError.message);
+      console.error('Error Stack:', apiError.stack);
+      console.error('Error Name:', apiError.name);
+      console.error('Full Error:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError)));
+      console.error('=======================');
+
       logger.error(`${apiToUse} API error:`, apiError);
 
       // APIエラーの詳細なメッセージを構築
@@ -153,6 +178,13 @@ async function generateImage(req, res) {
     }
     
   } catch (error) {
+    console.error('=== Outer Error Caught ===');
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
+    console.error('Error Name:', error.name);
+    console.error('Full Error:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    console.error('========================');
+
     logger.error('Image generation error:', error);
     sendErrorResponse(res, 500, '予期しないエラーが発生しました', error.message);
   }
