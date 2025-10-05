@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Loader2, Sparkles, Download } from 'lucide-react';
+import { Loader2, Sparkles, Download, CheckCircle2, AlertCircle, ExternalLink, Maximize2 } from 'lucide-react';
 
 const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
@@ -9,6 +9,9 @@ const ImageGenerationForm: React.FC = () => {
   const [generatedImage, setGeneratedImage] = useState<string>('');
   const [error, setError] = useState<string>('');
   const [analysisInfo, setAnalysisInfo] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [showImageModal, setShowImageModal] = useState<boolean>(false);
+  const [progress, setProgress] = useState<number>(0);
 
   // Vercelプロテクションバイパス用のヘッダー
   const getBypassHeaders = () => {
@@ -33,7 +36,14 @@ const ImageGenerationForm: React.FC = () => {
 
     setIsAnalyzing(true);
     setError('');
+    setSuccess('');
     setAnalysisInfo('');
+    setProgress(0);
+
+    // プログレスバーアニメーション
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 10, 90));
+    }, 300);
 
     try {
       const response = await fetch('/api/analyze-with-playwright', {
@@ -75,12 +85,16 @@ const ImageGenerationForm: React.FC = () => {
         if (data.from_cache) info.push('(キャッシュから取得)');
 
         setAnalysisInfo(info.join(' / '));
+        setSuccess('URL分析が完了しました！');
+        setProgress(100);
       }
     } catch (err) {
       console.error('Analysis Error:', err);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
+      clearInterval(progressInterval);
       setIsAnalyzing(false);
+      setTimeout(() => setProgress(0), 1000);
     }
   };
 
@@ -93,6 +107,13 @@ const ImageGenerationForm: React.FC = () => {
 
     setIsGenerating(true);
     setError('');
+    setSuccess('');
+    setProgress(0);
+
+    // プログレスバーアニメーション
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 5, 90));
+    }, 500);
 
     try {
       const response = await fetch('/api/generate', {
@@ -126,12 +147,16 @@ const ImageGenerationForm: React.FC = () => {
 
       if (data.success && data.image) {
         setGeneratedImage(data.image);
+        setSuccess('画像生成が完了しました！');
+        setProgress(100);
       }
     } catch (err) {
       console.error('Generation Error:', err);
       setError(err instanceof Error ? err.message : 'エラーが発生しました');
     } finally {
+      clearInterval(progressInterval);
       setIsGenerating(false);
+      setTimeout(() => setProgress(0), 1000);
     }
   };
 
@@ -148,12 +173,47 @@ const ImageGenerationForm: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* プログレスバー */}
+      {progress > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">
+              {isAnalyzing ? 'URL分析中...' : '画像生成中...'}
+            </span>
+            <span className="text-sm text-gray-500">{progress}%</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 成功メッセージ */}
+      {success && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3 animate-slide-down">
+          <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+          <p className="text-sm text-green-800">{success}</p>
+        </div>
+      )}
+
+      {/* エラー表示 */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 animate-slide-down">
+          <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+          <p className="text-sm text-red-800">{error}</p>
+        </div>
+      )}
+
       {/* URL入力セクション */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
         <div className="space-y-4">
           <div>
-            <label htmlFor="url" className="block text-sm font-medium text-gray-900 mb-2">
+            <label htmlFor="url" className="block text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <ExternalLink className="w-4 h-4 text-blue-600" />
               ウェブサイトURL
             </label>
             <div className="flex gap-3">
@@ -163,13 +223,13 @@ const ImageGenerationForm: React.FC = () => {
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="https://example.com"
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 placeholder-gray-400 transition-all"
                 disabled={isAnalyzing}
               />
               <button
                 onClick={handleAnalyze}
                 disabled={isAnalyzing || !url.trim()}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center gap-2 shadow-sm hover:shadow-md"
               >
                 {isAnalyzing ? (
                   <>
@@ -187,8 +247,9 @@ const ImageGenerationForm: React.FC = () => {
           </div>
 
           {analysisInfo && (
-            <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-md">
-              {analysisInfo}
+            <div className="text-sm text-gray-600 bg-blue-50 border border-blue-100 px-4 py-3 rounded-lg flex items-start gap-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <span>{analysisInfo}</span>
             </div>
           )}
         </div>
@@ -196,7 +257,7 @@ const ImageGenerationForm: React.FC = () => {
 
       {/* プロンプト編集セクション */}
       {prompt && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow animate-slide-down">
           <div className="space-y-4">
             <div>
               <label htmlFor="prompt" className="block text-sm font-medium text-gray-900 mb-2">
@@ -215,7 +276,7 @@ const ImageGenerationForm: React.FC = () => {
             <button
               onClick={handleGenerate}
               disabled={isGenerating || !prompt.trim()}
-              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center gap-2 shadow-sm"
+              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
             >
               {isGenerating ? (
                 <>
@@ -233,33 +294,41 @@ const ImageGenerationForm: React.FC = () => {
         </div>
       )}
 
-      {/* エラー表示 */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-sm text-red-800">{error}</p>
-        </div>
-      )}
-
       {/* 生成された画像 */}
       {generatedImage && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow animate-slide-down">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">生成結果</h3>
-              <button
-                onClick={handleDownload}
-                className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
-              >
-                <Download className="w-4 h-4" />
-                ダウンロード
-              </button>
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                生成結果
+              </h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowImageModal(true)}
+                  className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  <Maximize2 className="w-4 h-4" />
+                  拡大
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                >
+                  <Download className="w-4 h-4" />
+                  ダウンロード
+                </button>
+              </div>
             </div>
-            <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+            <div className="relative aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group" onClick={() => setShowImageModal(true)}>
               <img
                 src={generatedImage}
                 alt="Generated"
-                className="w-full h-full object-contain"
+                className="w-full h-full object-contain transition-transform group-hover:scale-105"
               />
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+              </div>
             </div>
           </div>
         </div>
@@ -267,22 +336,50 @@ const ImageGenerationForm: React.FC = () => {
 
       {/* 使い方ガイド */}
       {!prompt && !generatedImage && !isAnalyzing && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <h3 className="text-sm font-medium text-gray-900 mb-3">使い方</h3>
-          <ol className="space-y-2 text-sm text-gray-600">
-            <li className="flex gap-2">
-              <span className="text-blue-600 font-medium">1.</span>
+        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 animate-fade-in">
+          <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-blue-600" />
+            使い方
+          </h3>
+          <ol className="space-y-3 text-sm text-gray-700">
+            <li className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">1</span>
               <span>ウェブサイトのURLを入力して「分析」ボタンをクリック</span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-blue-600 font-medium">2.</span>
+            <li className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
               <span>自動生成されたプロンプトを確認・編集</span>
             </li>
-            <li className="flex gap-2">
-              <span className="text-blue-600 font-medium">3.</span>
+            <li className="flex gap-3 items-start">
+              <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
               <span>「画像を生成」ボタンをクリックして完了</span>
             </li>
           </ol>
+        </div>
+      )}
+
+      {/* 画像拡大モーダル */}
+      {showImageModal && generatedImage && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowImageModal(false)}
+        >
+          <div className="relative max-w-7xl max-h-full">
+            <img
+              src={generatedImage}
+              alt="Generated - Full Size"
+              className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+            <button
+              onClick={() => setShowImageModal(false)}
+              className="absolute top-4 right-4 bg-white bg-opacity-90 hover:bg-opacity-100 text-gray-800 rounded-full p-2 transition-all shadow-lg"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
       )}
     </div>
