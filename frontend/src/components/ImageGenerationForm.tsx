@@ -3,10 +3,9 @@ import { Loader2, Sparkles, Download, CheckCircle2, AlertCircle, ExternalLink, M
 
 const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
-  const [prompt, setPrompt] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generatedImage, setGeneratedImage] = useState<string>('');
+  const [generatedImage] = useState<string>('');
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]);
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -80,7 +79,6 @@ const ImageGenerationForm: React.FC = () => {
       }
 
       if (data.success) {
-        setPrompt(data.suggested_prompt || '');
         setSuggestedPrompts(data.suggested_prompts || []);
         setAnalysisData(data);
 
