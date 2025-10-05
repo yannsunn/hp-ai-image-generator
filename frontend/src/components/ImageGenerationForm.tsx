@@ -107,69 +107,6 @@ const ImageGenerationForm: React.FC = () => {
     }
   };
 
-  // 画像を生成（単一）
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      setError('プロンプトを入力してください');
-      return;
-    }
-
-    setIsGenerating(true);
-    setError('');
-    setSuccess('');
-    setProgress(0);
-
-    // プログレスバーアニメーション
-    const progressInterval = setInterval(() => {
-      setProgress(prev => Math.min(prev + 5, 90));
-    }, 500);
-
-    try {
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: getBypassHeaders(),
-        body: JSON.stringify({
-          prompt,
-          api: 'gemini'
-        })
-      });
-
-      // レスポンスのテキストを取得
-      const text = await response.text();
-
-      // 空のレスポンスチェック
-      if (!text) {
-        throw new Error('サーバーから空のレスポンスが返されました。APIキーまたは環境変数を確認してください。');
-      }
-
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error('JSON Parse Error:', text);
-        throw new Error(`レスポンスの解析に失敗: ${text.substring(0, 100)}`);
-      }
-
-      if (!response.ok) {
-        throw new Error(data.error || `画像生成に失敗しました (${response.status})`);
-      }
-
-      if (data.success && data.image) {
-        setGeneratedImage(data.image);
-        setSuccess('画像生成が完了しました！');
-        setProgress(100);
-      }
-    } catch (err) {
-      console.error('Generation Error:', err);
-      setError(err instanceof Error ? err.message : 'エラーが発生しました');
-    } finally {
-      clearInterval(progressInterval);
-      setIsGenerating(false);
-      setTimeout(() => setProgress(0), 1000);
-    }
-  };
-
   // すべての画像を生成
   const handleGenerateAll = async () => {
     if (!suggestedPrompts || suggestedPrompts.length === 0) {
