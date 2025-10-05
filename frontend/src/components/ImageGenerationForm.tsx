@@ -7,10 +7,14 @@ const ImageGenerationForm: React.FC = () => {
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [generatedImage, setGeneratedImage] = useState<string>('');
+  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
+  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]);
+  const [analysisData, setAnalysisData] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [analysisInfo, setAnalysisInfo] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
+  const [selectedImage, setSelectedImage] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
 
   // Vercelプロテクションバイパス用のヘッダー
@@ -77,15 +81,20 @@ const ImageGenerationForm: React.FC = () => {
 
       if (data.success) {
         setPrompt(data.suggested_prompt || '');
+        setSuggestedPrompts(data.suggested_prompts || []);
+        setAnalysisData(data);
 
         // 分析情報を表示
         const info = [];
         if (data.industry) info.push(`業界: ${data.industry}`);
         if (data.content_type) info.push(`タイプ: ${data.content_type}`);
+        if (data.suggested_prompts && data.suggested_prompts.length > 0) {
+          info.push(`画像候補: ${data.suggested_prompts.length}箇所`);
+        }
         if (data.from_cache) info.push('(キャッシュから取得)');
 
         setAnalysisInfo(info.join(' / '));
-        setSuccess('URL分析が完了しました！');
+        setSuccess(`URL分析が完了しました！${data.suggested_prompts?.length || 0}箇所の画像候補を検出`);
         setProgress(100);
       }
     } catch (err) {
@@ -160,16 +169,82 @@ const ImageGenerationForm: React.FC = () => {
     }
   };
 
-  // 画像をダウンロード
-  const handleDownload = () => {
-    if (!generatedImage) return;
+  // すべての画像を生成
+  const handleGenerateAll = async () => {
+    if (!suggestedPrompts || suggestedPrompts.length === 0) {
+      setError('生成する画像候補がありません');
+      return;
+    }
 
+    setIsGenerating(true);
+    setError('');
+    setSuccess('');
+    setProgress(0);
+    setGeneratedImages([]);
+
+    // プログレスバーアニメーション
+    const progressInterval = setInterval(() => {
+      setProgress(prev => Math.min(prev + 3, 90));
+    }, 800);
+
+    try {
+      const response = await fetch('/api/generate-all-images', {
+        method: 'POST',
+        headers: getBypassHeaders(),
+        body: JSON.stringify({
+          suggested_prompts: suggestedPrompts,
+          industry: analysisData?.industry,
+          url: url
+        })
+      });
+
+      const text = await response.text();
+
+      if (!text) {
+        throw new Error('サーバーから空のレスポンスが返されました');
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseError) {
+        console.error('JSON Parse Error:', text);
+        throw new Error(`レスポンスの解析に失敗: ${text.substring(0, 100)}`);
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || `画像生成に失敗しました (${response.status})`);
+      }
+
+      if (data.success && data.images) {
+        setGeneratedImages(data.images);
+        setSuccess(`${data.images.length}枚の画像生成が完了しました！`);
+        setProgress(100);
+      }
+    } catch (err) {
+      console.error('Generation Error:', err);
+      setError(err instanceof Error ? err.message : 'エラーが発生しました');
+    } finally {
+      clearInterval(progressInterval);
+      setIsGenerating(false);
+      setTimeout(() => setProgress(0), 1000);
+    }
+  };
+
+  // 画像をダウンロード
+  const handleDownload = (imageUrl: string, filename?: string) => {
     const link = document.createElement('a');
-    link.href = generatedImage;
-    link.download = `ai-generated-${Date.now()}.png`;
+    link.href = imageUrl;
+    link.download = filename || `ai-generated-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // モーダルで画像を表示
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
+    setShowImageModal(true);
   };
 
   return (
@@ -255,41 +330,53 @@ const ImageGenerationForm: React.FC = () => {
         </div>
       </div>
 
-      {/* プロンプト編集セクション */}
-      {prompt && (
+      {/* 画像候補一覧とすべて生成 */}
+      {suggestedPrompts.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow animate-slide-down">
           <div className="space-y-4">
-            <div>
-              <label htmlFor="prompt" className="block text-sm font-medium text-gray-900 mb-2">
-                プロンプト
-              </label>
-              <textarea
-                id="prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 resize-none"
-                placeholder="画像生成のプロンプトを入力..."
-              />
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-blue-600" />
+                検出された画像候補 ({suggestedPrompts.length}箇所)
+              </h3>
+              <button
+                onClick={handleGenerateAll}
+                disabled={isGenerating}
+                className="px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center gap-2 shadow-lg hover:shadow-xl"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    生成中...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    すべて生成
+                  </>
+                )}
+              </button>
             </div>
 
-            <button
-              onClick={handleGenerate}
-              disabled={isGenerating || !prompt.trim()}
-              className="w-full px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
-            >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  生成中...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-5 h-5" />
-                  画像を生成
-                </>
-              )}
-            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {suggestedPrompts.map((promptObj, index) => (
+                <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                      {index + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 mb-1">
+                        {promptObj.type || promptObj.section || '画像'}
+                      </p>
+                      <p className="text-xs text-gray-600 line-clamp-2">
+                        {promptObj.description || promptObj.prompt}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -312,7 +399,7 @@ const ImageGenerationForm: React.FC = () => {
                   拡大
                 </button>
                 <button
-                  onClick={handleDownload}
+                  onClick={() => handleDownload(generatedImage)}
                   className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                 >
                   <Download className="w-4 h-4" />
@@ -320,7 +407,7 @@ const ImageGenerationForm: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="relative aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group" onClick={() => setShowImageModal(true)}>
+            <div className="relative aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group" onClick={() => openImageModal(generatedImage)}>
               <img
                 src={generatedImage}
                 alt="Generated"
@@ -334,8 +421,59 @@ const ImageGenerationForm: React.FC = () => {
         </div>
       )}
 
+      {/* 複数画像の生成結果 */}
+      {generatedImages.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow animate-slide-down">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                生成結果 ({generatedImages.length}枚)
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {generatedImages.map((img, index) => (
+                <div key={index} className="bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg overflow-hidden border border-gray-200 hover:border-blue-300 transition-all hover:shadow-lg">
+                  <div className="relative aspect-square bg-white cursor-pointer group" onClick={() => openImageModal(img.image)}>
+                    <img
+                      src={img.image}
+                      alt={img.description || `Generated image ${index + 1}`}
+                      className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
+                      <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-3">
+                    <div>
+                      <h4 className="font-semibold text-gray-900 text-sm mb-1 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">
+                          {index + 1}
+                        </span>
+                        {img.type || img.section || '画像'}
+                      </h4>
+                      <p className="text-xs text-gray-600 line-clamp-2">
+                        {img.description}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(img.image, `${img.type || 'image'}-${index + 1}.png`)}
+                      className="w-full px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Download className="w-4 h-4" />
+                      ダウンロード
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 使い方ガイド */}
-      {!prompt && !generatedImage && !isAnalyzing && (
+      {!suggestedPrompts.length && !generatedImage && !generatedImages.length && !isAnalyzing && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 animate-fade-in">
           <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
@@ -348,25 +486,25 @@ const ImageGenerationForm: React.FC = () => {
             </li>
             <li className="flex gap-3 items-start">
               <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">2</span>
-              <span>自動生成されたプロンプトを確認・編集</span>
+              <span>システムが自動的にページ全体を分析し、必要な画像箇所を検出</span>
             </li>
             <li className="flex gap-3 items-start">
               <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">3</span>
-              <span>「画像を生成」ボタンをクリックして完了</span>
+              <span>「すべて生成」ボタンで全画像を一括生成</span>
             </li>
           </ol>
         </div>
       )}
 
       {/* 画像拡大モーダル */}
-      {showImageModal && generatedImage && (
+      {showImageModal && selectedImage && (
         <div
           className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 animate-fade-in"
           onClick={() => setShowImageModal(false)}
         >
           <div className="relative max-w-7xl max-h-full">
             <img
-              src={generatedImage}
+              src={selectedImage}
               alt="Generated - Full Size"
               className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
               onClick={(e) => e.stopPropagation()}
