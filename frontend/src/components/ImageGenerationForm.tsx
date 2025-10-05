@@ -107,7 +107,8 @@ const ImageGenerationForm: React.FC = () => {
     }
   };
 
-  // 画像を生成
+  // 画像を生成（単一）
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleGenerate = async () => {
     if (!prompt.trim()) {
       setError('プロンプトを入力してください');
