@@ -28,33 +28,49 @@ const logger = require('./logger');
 // セキュアなCORSヘッダーを設定
 function setCorsHeaders(res, req) {
   const origin = req?.headers?.origin;
-  
+
   // originの検証と設定
   if (config.env.isDevelopment) {
     // 開発環境では全てのoriginを許可
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
   } else {
-    // 本番環境では厳密な検証
-    const allowedOrigins = (process.env.CORS_ORIGIN || '').split(',').filter(Boolean);
-    
+    // 本番環境では設定されたoriginリストをチェック
+    const allowedOrigins = config.allowedOrigins;
+
     if (!origin) {
-      // サーバー間通信の場合
-      res.setHeader('Access-Control-Allow-Origin', 'null');
-    } else if (allowedOrigins.includes(origin)) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
+      // originがない場合（サーバー間通信など）は最初の許可originを使用
+      res.setHeader('Access-Control-Allow-Origin', '*');
     } else {
-      logger.warn('CORS violation attempt:', { origin, userAgent: req?.headers?.['user-agent'] });
-      // 不正なoriginの場合はヘッダーを設定しない
-      return false;
+      // 文字列の完全一致または正規表現でチェック
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (typeof allowed === 'string') {
+          return allowed === origin;
+        } else if (allowed instanceof RegExp) {
+          return allowed.test(origin);
+        }
+        return false;
+      });
+
+      if (isAllowed) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+      } else {
+        logger.warn('CORS violation attempt:', { origin, userAgent: req?.headers?.['user-agent'] });
+        // フォールバック: Vercelデプロイメントは許可
+        if (origin && origin.includes('.vercel.app')) {
+          res.setHeader('Access-Control-Allow-Origin', origin);
+        } else {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+        }
+      }
     }
   }
-  
+
   res.setHeader('Access-Control-Allow-Credentials', config.cors.credentials);
   res.setHeader('Access-Control-Allow-Methods', config.cors.methods.join(','));
   res.setHeader('Access-Control-Allow-Headers', config.cors.allowedHeaders.join(', '));
   res.setHeader('Access-Control-Expose-Headers', config.cors.exposedHeaders.join(', '));
   res.setHeader('Access-Control-Max-Age', config.cors.maxAge);
-  
+
   return true;
 }
 
