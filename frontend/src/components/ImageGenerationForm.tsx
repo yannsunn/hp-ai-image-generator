@@ -166,6 +166,10 @@ const ImageGenerationForm: React.FC = () => {
   const [showApiKeyUpdate, setShowApiKeyUpdate] = useState<boolean>(false);
   const [newApiKey, setNewApiKey] = useState<string>('');
 
+  // 画像生成設定
+  const [selectedStyleLevel, setSelectedStyleLevel] = useState<string>('standard');
+  const [selectedColorPalette, setSelectedColorPalette] = useState<string>('vibrant');
+
   // Vercelプロテクションバイパス用のヘッダー
   const getBypassHeaders = () => {
     const headers: Record<string, string> = {
@@ -254,6 +258,14 @@ const ImageGenerationForm: React.FC = () => {
         setSuggestedPrompts(data.suggested_prompts || []);
         setAnalysisData(data);
 
+        // 推奨設定を自動選択
+        if (data.recommended_style_level) {
+          setSelectedStyleLevel(data.recommended_style_level);
+        }
+        if (data.recommended_color_palette) {
+          setSelectedColorPalette(data.recommended_color_palette);
+        }
+
         // 分析情報を表示
         const info = [];
         if (data.industry) info.push(`業界: ${translateIndustry(data.industry)}`);
@@ -304,7 +316,9 @@ const ImageGenerationForm: React.FC = () => {
           industry: analysisData?.industry,
           url: url,
           company_info: analysisData?.company_info,
-          existing_images: analysisData?.existing_images
+          existing_images: analysisData?.existing_images,
+          style_level: selectedStyleLevel,
+          color_palette: selectedColorPalette
         })
       });
 
@@ -500,6 +514,71 @@ const ImageGenerationForm: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* 画像生成設定（自動選択+編集可能） */}
+      {suggestedPrompts.length > 0 && (
+        <div className="bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200 rounded-xl p-6 shadow-sm animate-slide-down">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            画像生成設定
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* スタイルレベル選択 */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                スタイルレベル
+                {analysisData?.style_level_reasoning && (
+                  <span className="ml-2 text-xs font-normal text-purple-600">
+                    (AI推奨)
+                  </span>
+                )}
+              </label>
+              <select
+                value={selectedStyleLevel}
+                onChange={(e) => setSelectedStyleLevel(e.target.value)}
+                className="w-full px-4 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+              >
+                <option value="standard">Standard - シンプルでクリーン</option>
+                <option value="premium">Premium - 洗練されたプロフェッショナル</option>
+                <option value="luxury">Luxury - 最高級の質感とライティング</option>
+              </select>
+              {analysisData?.style_level_reasoning && (
+                <p className="mt-1 text-xs text-gray-600">
+                  💡 {analysisData.style_level_reasoning}
+                </p>
+              )}
+            </div>
+
+            {/* カラーパレット選択 */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">
+                カラーパレット
+                {analysisData?.color_palette_reasoning && (
+                  <span className="ml-2 text-xs font-normal text-purple-600">
+                    (AI推奨)
+                  </span>
+                )}
+              </label>
+              <select
+                value={selectedColorPalette}
+                onChange={(e) => setSelectedColorPalette(e.target.value)}
+                className="w-full px-4 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
+              >
+                <option value="vibrant">Vibrant - 鮮やかで活気のある色</option>
+                <option value="muted">Muted - 落ち着いた高級感のある色</option>
+                <option value="monochrome">Monochrome - モノクロ・グレースケール</option>
+                <option value="corporate">Corporate - 企業向けカラー</option>
+              </select>
+              {analysisData?.color_palette_reasoning && (
+                <p className="mt-1 text-xs text-gray-600">
+                  💡 {analysisData.color_palette_reasoning}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 画像候補一覧とすべて生成 */}
       {suggestedPrompts.length > 0 && (

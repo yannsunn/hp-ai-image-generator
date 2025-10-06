@@ -69,7 +69,11 @@ URL: ${url}
     "composition": "推奨構図（centered/rule-of-thirds/symmetrical/dynamic）",
     "lighting": "推奨ライティング（natural/studio/dramatic/soft）",
     "perspective": "推奨視点（eye-level/bird-view/close-up/wide-angle）"
-  }
+  },
+  "recommended_style_level": "推奨スタイルレベル（standard/premium/luxury）",
+  "style_level_reasoning": "スタイルレベルを選んだ理由（業界、価格帯、ブランドイメージから判断）",
+  "recommended_color_palette": "推奨カラーパレット（vibrant/muted/monochrome/corporate）",
+  "color_palette_reasoning": "カラーパレットを選んだ理由"
 }
 
 重要:
@@ -80,6 +84,17 @@ URL: ${url}
 - 日本のビジネス文化に適した表現を使用してください
 - すべての画像は「純粋なビジュアル要素のみ」で構成してください
 - プロフェッショナルで高品質な画像生成を意識してください
+
+**スタイルレベルの選び方:**
+- **luxury**: 高級ブランド、金融、法律、高額コンサルティング、ラグジュアリー業界 → 最高品質、複雑なライティング、高級素材
+- **premium**: IT/テクノロジー、プロフェッショナルサービス、中堅企業 → 洗練された質感、プロフェッショナルなライティング
+- **standard**: 一般的なサービス、小規模事業、スタートアップ → シンプルでクリーンな画像
+
+**カラーパレットの選び方:**
+- **vibrant**: レストラン、クリエイティブ、教育、エンターテイメント → 鮮やかで活気のある色
+- **muted**: 高級感、コンサルティング、金融、法律 → 落ち着いた彩度の低い色
+- **monochrome**: ミニマリスト、建築、デザイン事務所 → 白黒やグレースケール
+- **corporate**: B2B、大企業、製造業 → ネイビー、グレー、ブルーなど企業カラー
 - 従業員数の判定について（重要）:
   * コンテンツから従業員数の明示的な記載を探してください（「従業員数」「社員数」「スタッフ数」など）
   * チーム紹介ページやメンバー紹介がある場合、その人数を正確にカウントしてください
@@ -225,12 +240,18 @@ URL: ${url}
     "lighting": "推奨ライティング（natural/studio/dramatic/soft）",
     "perspective": "推奨視点（eye-level/bird-view/close-up/wide-angle）",
     "style_match": "既存デザインとの調和のための推奨事項"
-  }
+  },
+  "recommended_style_level": "推奨スタイルレベル（standard/premium/luxury）",
+  "style_level_reasoning": "スタイルレベルを選んだ理由（業界、既存デザインの質、価格帯から判断）",
+  "recommended_color_palette": "推奨カラーパレット（vibrant/muted/monochrome/corporate）",
+  "color_palette_reasoning": "カラーパレットを選んだ理由（既存サイトのカラースキームを考慮）"
 }
 
 重要:
 - スクリーンショットから実際のデザイン要素を詳しく分析してください
 - **既存画像分析が最優先**: 既存のホームページに使用されている画像スタイルを正確に把握してください
+- **既存サイトの品質を評価**: デザインの洗練度からstyle_levelを判断してください
+- **既存カラーに合わせる**: スクリーンショットの色調からcolor_paletteを選んでください
 - **人物判定のルール**:
   * 既存画像に人物写真が少ない（30%未満）場合: 生成画像も人物なしを推奨
   * 既存画像が主にイラスト/3D/抽象的な場合: 同じスタイルを推奨

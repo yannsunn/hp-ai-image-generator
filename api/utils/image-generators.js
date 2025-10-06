@@ -2,6 +2,78 @@ const fetch = require('node-fetch');
 const config = require('../config');
 const logger = require('./logger');
 
+// スタイルレベル別の強化キーワード
+function getStyleLevelEnhancements(styleLevel = 'standard') {
+  switch (styleLevel) {
+    case 'luxury':
+      return [
+        // 最高品質
+        'ultra high quality', 'masterpiece', 'award winning photography',
+        // 複雑なライティング
+        'dramatic studio lighting', 'cinematic lighting', 'volumetric lighting', 'rim lighting',
+        // 高級素材
+        'premium materials', 'luxury textures', 'marble', 'gold accents', 'leather texture', 'polished metal',
+        // レンダリング
+        'octane render', 'ray tracing', 'physically based rendering', 'path tracing',
+        // 質感
+        'intricate details', 'fine craftsmanship', 'elegant composition', 'sophisticated aesthetic',
+        // カメラ
+        'shallow depth of field', 'beautiful bokeh', 'professional photography', 'medium format camera',
+        // 色調
+        'rich colors', 'refined color grading', 'exceptional color depth'
+      ];
+    case 'premium':
+      return [
+        'high quality', 'professional grade', 'polished look',
+        'studio lighting', 'professional lighting setup', 'soft shadows', 'controlled highlights',
+        'clean textures', 'polished surfaces', 'sleek modern design',
+        'detailed rendering', 'realistic materials', 'high fidelity',
+        'sharp focus', 'professional photography', 'balanced depth of field',
+        'sophisticated composition', 'refined aesthetic',
+        'subtle color grading', 'refined color palette', 'harmonious colors'
+      ];
+    case 'standard':
+    default:
+      return [
+        'good quality', 'clean design', 'professional look',
+        'natural lighting', 'even lighting', 'soft light',
+        'simple textures', 'modern aesthetic',
+        'clear focus', 'balanced composition'
+      ];
+  }
+}
+
+// カラーパレット別の強化キーワード
+function getColorPaletteEnhancements(colorPalette = 'vibrant') {
+  switch (colorPalette) {
+    case 'muted':
+      return [
+        'muted colors', 'desaturated palette', 'subtle tones', 'understated colors',
+        'low saturation', 'earth tones', 'neutral colors', 'beige and gray tones',
+        'sophisticated color scheme', 'elegant color palette', 'refined colors',
+        'pastel colors', 'soft hues', 'gentle color transitions'
+      ];
+    case 'monochrome':
+      return [
+        'monochromatic color scheme', 'black and white', 'grayscale palette',
+        'minimal color usage', 'achromatic design', 'noir aesthetic',
+        'high contrast', 'tonal variation', 'shades of gray'
+      ];
+    case 'corporate':
+      return [
+        'corporate color palette', 'professional color scheme', 'business colors',
+        'navy blue tones', 'charcoal gray', 'steel blue', 'conservative palette',
+        'formal colors', 'trustworthy colors', 'corporate blue and gray'
+      ];
+    case 'vibrant':
+    default:
+      return [
+        'vibrant colors', 'rich saturated colors', 'bold color palette',
+        'energetic colors', 'vivid hues', 'dynamic color scheme'
+      ];
+  }
+}
+
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
 
@@ -40,6 +112,13 @@ function enhancePromptForJapan(prompt, context = {}) {
     'no trademarks',
     'brand-neutral imagery'
   ];
+
+  // スタイルレベルとカラーパレットの強化を追加
+  const styleLevel = context.style_level || context.styleLevel || 'standard';
+  const colorPalette = context.color_palette || context.colorPalette || 'vibrant';
+
+  const styleLevelEnhancements = getStyleLevelEnhancements(styleLevel);
+  const colorPaletteEnhancements = getColorPaletteEnhancements(colorPalette);
 
   // 人物が必要かどうかを判定
   const needsPeople = shouldIncludePeople(context);
@@ -81,7 +160,14 @@ function enhancePromptForJapan(prompt, context = {}) {
   const industrySpecific = getIndustryEnhancements(context, needsPeople);
   const contentTypeSpecific = getContentTypeEnhancements(context, needsPeople);
 
-  japaneseEnhancements.push(...visualStyle, ...industrySpecific, ...contentTypeSpecific);
+  // スタイルレベルとカラーパレットの強化を追加
+  japaneseEnhancements.push(
+    ...styleLevelEnhancements,
+    ...colorPaletteEnhancements,
+    ...visualStyle,
+    ...industrySpecific,
+    ...contentTypeSpecific
+  );
 
   // 会社規模に応じて人数を調整（人物が必要な場合のみ）
   if (needsPeople) {
@@ -111,6 +197,13 @@ function enhancePromptForJapan(prompt, context = {}) {
   negativePrompt += ', Amazon, Google, Apple, Microsoft, Facebook, Meta, Twitter, Instagram, YouTube, Netflix, Tesla, Nike, Adidas';
   negativePrompt += ', McDonald, Starbucks, Coca-Cola, Pepsi, Samsung, Sony, Toyota, Honda, BMW, Mercedes';
   negativePrompt += ', any recognizable brands, any corporate logos, any trademarked symbols, branded products';
+
+  // **安っぽさの除外（スタイルレベルに応じて）**
+  if (styleLevel === 'luxury' || styleLevel === 'premium') {
+    negativePrompt += ', cheap looking, low quality materials, plastic appearance, toy-like, amateur';
+    negativePrompt += ', flat lighting, simple shapes, cartoon-like, clipart style, oversaturated colors';
+    negativePrompt += ', poor composition, basic rendering, low detail, simplistic';
+  }
 
   if (needsPeople) {
     // 人物が必要な場合は重複する顔を除外
