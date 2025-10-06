@@ -7,7 +7,7 @@ const { generateWithGemini } = require('./utils/image-generators');
 async function handler(req, res) {
   // CORS設定（セキュア）
   if (!setCorsHeaders(res, req)) {
-    sendErrorResponse(res, 403, 'CORS policy violation');
+    sendErrorResponse(res, 403, 'CORSポリシー違反');
     return;
   }
 
@@ -17,7 +17,7 @@ async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    sendErrorResponse(res, 405, 'Method not allowed');
+    sendErrorResponse(res, 405, 'POSTメソッドのみ許可されています');
     return;
   }
 
@@ -96,7 +96,7 @@ async function generateAllImages(req, res) {
             index,
             type: promptObj.type,
             section: promptObj.section,
-            message: error.message || 'Generation failed'
+            message: error.message || '画像生成に失敗しました'
           }
         };
       }
@@ -115,7 +115,7 @@ async function generateAllImages(req, res) {
         }
       } else {
         errors.push({
-          message: result.reason?.message || 'Unknown error',
+          message: result.reason?.message || '不明なエラー',
           details: result.reason?.toString()
         });
       }

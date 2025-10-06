@@ -31,22 +31,30 @@ function withErrorHandler(handler) {
 
         // 本番環境でも詳細なエラー情報を返す（デバッグ用）
         // セキュリティ上の懸念がある場合は後で調整可能
-        const errorMessage = error.message || '内部サーバーエラーが発生しました';
+        let errorMessage = error.message || '内部サーバーエラーが発生しました';
+        
+        // OAuth認証エラーの場合は日本語メッセージに変換
+        if (error.message?.includes('OAuth token has expired') || error.message?.includes('authentication_error')) {
+          errorMessage = 'APIキーが期限切れです。新しいAPIキーを取得して環境変数を更新してください。';
+        } else if (error.message?.includes('API key') || error.message?.includes('API_KEY')) {
+          errorMessage = 'APIキーが無効です。環境変数の設定を確認してください。';
+        }
+        
         const errorDetails = error.stack;
 
-        // コンソールに詳細ログを出力（Vercelログで確認可能）
-        console.error('=== API Error Details ===');
-        console.error('Endpoint:', req.url);
-        console.error('Method:', req.method);
-        console.error('Error Message:', errorMessage);
-        console.error('Stack:', error.stack);
-        console.error('Request Body:', JSON.stringify(req.body));
-        console.error('Environment Check:', {
-          NODE_ENV: process.env.NODE_ENV,
-          GEMINI_API_KEY_SET: !!process.env.GEMINI_API_KEY,
-          GEMINI_IMAGE_MODEL: process.env.GEMINI_IMAGE_MODEL
+        // 構造化ログで詳細を出力（Vercelログで確認可能）
+        logger.error('API Error Details', {
+          endpoint: req.url,
+          method: req.method,
+          errorMessage,
+          stack: error.stack,
+          requestBody: req.body,
+          environment: {
+            NODE_ENV: process.env.NODE_ENV,
+            GEMINI_API_KEY_SET: !!process.env.GEMINI_API_KEY,
+            GEMINI_IMAGE_MODEL: process.env.GEMINI_IMAGE_MODEL
+          }
         });
-        console.error('========================');
 
         try {
           return sendErrorResponse(res, 500, errorMessage, errorDetails);

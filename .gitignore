@@ -13,10 +13,15 @@ ENV/
 instance/
 .webassets-cache
 
-# Environment variables
-.env
+# Environment variables - 機密情報を含むファイル
 .env.local
 .env.*.local
+.env.production
+.env.production.local
+.env.development.local
+.env.test.local
+
+# 注意: .env はテンプレートとして追跡されます（機密情報を含まない）
 
 # IDE
 .vscode/
@@ -61,3 +66,5 @@ htmlcov/
 *.md.backup/.env
 .env*.local
 .env.production
+
+.vercel

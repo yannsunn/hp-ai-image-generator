@@ -5,7 +5,6 @@ const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generatedImage] = useState<string>('');
   const [generatedImages, setGeneratedImages] = useState<any[]>([]);
   const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]);
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -15,6 +14,8 @@ const ImageGenerationForm: React.FC = () => {
   const [showImageModal, setShowImageModal] = useState<boolean>(false);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
+  const [showApiKeyUpdate, setShowApiKeyUpdate] = useState<boolean>(false);
+  const [newApiKey, setNewApiKey] = useState<string>('');
 
   // Vercelプロテクションバイパス用のヘッダー
   const getBypassHeaders = () => {
@@ -75,7 +76,29 @@ const ImageGenerationForm: React.FC = () => {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || `URL解析に失敗しました (${response.status})`);
+        // エラーメッセージを日本語に変換
+        let errorMessage = data.error || `URL解析に失敗しました (${response.status})`;
+        
+        // OAuth認証エラーの場合
+        if (data.error && (data.error.includes('OAuth token has expired') || data.error.includes('authentication_error'))) {
+          errorMessage = 'APIキーが期限切れです。管理者にお問い合わせください。';
+        }
+        // その他の英語エラーメッセージを日本語に変換
+        else if (data.error) {
+          if (data.error.includes('API key') || data.error.includes('API_KEY')) {
+            errorMessage = 'APIキーが無効です。環境変数の設定を確認してください。';
+          } else if (data.error.includes('rate limit')) {
+            errorMessage = 'APIの使用量制限に達しました。しばらく待ってから再度お試しください。';
+          } else if (data.error.includes('quota')) {
+            errorMessage = 'APIのクレジットが不足しています。';
+          } else if (data.error.includes('timeout')) {
+            errorMessage = 'リクエストがタイムアウトしました。しばらく待ってから再度お試しください。';
+          } else if (data.error.includes('network') || data.error.includes('connection')) {
+            errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       if (data.success) {
@@ -149,7 +172,29 @@ const ImageGenerationForm: React.FC = () => {
       }
 
       if (!response.ok) {
-        throw new Error(data.error || `画像生成に失敗しました (${response.status})`);
+        // エラーメッセージを日本語に変換
+        let errorMessage = data.error || `画像生成に失敗しました (${response.status})`;
+        
+        // OAuth認証エラーの場合
+        if (data.error && (data.error.includes('OAuth token has expired') || data.error.includes('authentication_error'))) {
+          errorMessage = 'APIキーが期限切れです。管理者にお問い合わせください。';
+        }
+        // その他の英語エラーメッセージを日本語に変換
+        else if (data.error) {
+          if (data.error.includes('API key') || data.error.includes('API_KEY')) {
+            errorMessage = 'APIキーが無効です。環境変数の設定を確認してください。';
+          } else if (data.error.includes('rate limit')) {
+            errorMessage = 'APIの使用量制限に達しました。しばらく待ってから再度お試しください。';
+          } else if (data.error.includes('quota')) {
+            errorMessage = 'APIのクレジットが不足しています。';
+          } else if (data.error.includes('timeout')) {
+            errorMessage = 'リクエストがタイムアウトしました。しばらく待ってから再度お試しください。';
+          } else if (data.error.includes('network') || data.error.includes('connection')) {
+            errorMessage = 'ネットワークエラーが発生しました。インターネット接続を確認してください。';
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
 
       if (data.success && data.images) {
@@ -181,6 +226,35 @@ const ImageGenerationForm: React.FC = () => {
   const openImageModal = (imageUrl: string) => {
     setSelectedImage(imageUrl);
     setShowImageModal(true);
+  };
+
+  // APIキーを更新
+  const handleUpdateApiKey = async () => {
+    if (!newApiKey.trim()) {
+      setError('APIキーを入力してください');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/emergency/update-api-key', {
+        method: 'POST',
+        headers: getBypassHeaders(),
+        body: JSON.stringify({ apiKey: newApiKey })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSuccess('APIキーが正常に更新されました！');
+        setShowApiKeyUpdate(false);
+        setNewApiKey('');
+        setError('');
+      } else {
+        setError(data.error || 'APIキーの更新に失敗しました');
+      }
+    } catch (err) {
+      setError('APIキーの更新中にエラーが発生しました');
+    }
   };
 
   return (
@@ -215,7 +289,17 @@ const ImageGenerationForm: React.FC = () => {
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center gap-3 animate-slide-down">
           <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-          <p className="text-sm text-red-800">{error}</p>
+          <div className="flex-1">
+            <p className="text-sm text-red-800">{error}</p>
+            {error.includes('APIキーが期限切れ') && (
+              <button
+                onClick={() => setShowApiKeyUpdate(true)}
+                className="mt-2 text-xs bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded transition-colors"
+              >
+                APIキーを更新
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -317,45 +401,6 @@ const ImageGenerationForm: React.FC = () => {
         </div>
       )}
 
-      {/* 生成された画像 */}
-      {generatedImage && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow animate-slide-down">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
-                生成結果
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowImageModal(true)}
-                  className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors flex items-center gap-2"
-                >
-                  <Maximize2 className="w-4 h-4" />
-                  拡大
-                </button>
-                <button
-                  onClick={() => handleDownload(generatedImage)}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-2 shadow-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  ダウンロード
-                </button>
-              </div>
-            </div>
-            <div className="relative aspect-video bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group" onClick={() => openImageModal(generatedImage)}>
-              <img
-                src={generatedImage}
-                alt="Generated"
-                className="w-full h-full object-contain transition-transform group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all flex items-center justify-center">
-                <Maximize2 className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 複数画像の生成結果 */}
       {generatedImages.length > 0 && (
@@ -409,7 +454,7 @@ const ImageGenerationForm: React.FC = () => {
       )}
 
       {/* 使い方ガイド */}
-      {!suggestedPrompts.length && !generatedImage && !generatedImages.length && !isAnalyzing && (
+      {!suggestedPrompts.length && !generatedImages.length && !isAnalyzing && (
         <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 animate-fade-in">
           <h3 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-blue-600" />
@@ -429,6 +474,50 @@ const ImageGenerationForm: React.FC = () => {
               <span>「すべて生成」ボタンで全画像を一括生成</span>
             </li>
           </ol>
+        </div>
+      )}
+
+      {/* APIキー更新モーダル */}
+      {showApiKeyUpdate && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setShowApiKeyUpdate(false)}
+        >
+          <div
+            className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">APIキーを更新</h3>
+            <div className="space-y-4">
+              <div>
+                <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-2">
+                  新しいGemini APIキー
+                </label>
+                <input
+                  type="password"
+                  id="apiKey"
+                  value={newApiKey}
+                  onChange={(e) => setNewApiKey(e.target.value)}
+                  placeholder="AIzaSyC..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={handleUpdateApiKey}
+                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  更新
+                </button>
+                <button
+                  onClick={() => setShowApiKeyUpdate(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

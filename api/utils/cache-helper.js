@@ -64,7 +64,9 @@ async function getCachedAnalysis(url) {
 /**
  * 分析結果をキャッシュに保存
  */
-async function setCachedAnalysis(url, analysisData, ttlSeconds = 86400) {
+async function setCachedAnalysis(url, analysisData, ttlSeconds = null) {
+  const config = require('../config');
+  ttlSeconds = ttlSeconds || config.cache.analysisTTL;
   if (!kvAvailable || !kv) {
     return false;
   }
@@ -113,7 +115,9 @@ async function getCachedPrompt(promptHash) {
 /**
  * 画像生成プロンプトをキャッシュに保存
  */
-async function setCachedPrompt(promptHash, promptData, ttlSeconds = 3600) {
+async function setCachedPrompt(promptHash, promptData, ttlSeconds = null) {
+  const config = require('../config');
+  ttlSeconds = ttlSeconds || config.cache.promptTTL;
   if (!kvAvailable || !kv) {
     return false;
   }

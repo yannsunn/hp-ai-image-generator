@@ -1,6 +1,8 @@
 // 入力検証ユーティリティ
-const MAX_PROMPT_LENGTH = 5000;
-const MAX_BATCH_SIZE = 8;
+const config = require('../config');
+
+const MAX_PROMPT_LENGTH = config.limits.maxPromptLength;
+const MAX_BATCH_SIZE = config.limits.maxBatchSize;
 
 /**
  * URLの検証とサニタイゼーション

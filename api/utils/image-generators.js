@@ -91,7 +91,7 @@ async function generateWithGemini(prompt, apiKey, context = {}) {
     const parts = response.candidates?.[0]?.content?.parts;
 
     if (!parts || parts.length === 0) {
-      throw new Error('No response parts returned from Gemini API');
+      throw new Error('Gemini APIからレスポンスが返されませんでした');
     }
 
     // 画像データを探す（inline_dataまたはinlineData形式）
@@ -104,7 +104,7 @@ async function generateWithGemini(prompt, apiKey, context = {}) {
     }
 
     if (!imageData || !imageData.data) {
-      throw new Error('No image data returned from Gemini API. Response: ' + JSON.stringify(parts));
+      throw new Error('Gemini APIから画像データが返されませんでした。レスポンス: ' + JSON.stringify(parts));
     }
 
     // MIMEタイプとデータを取得
@@ -125,8 +125,8 @@ async function generateWithGemini(prompt, apiKey, context = {}) {
   } catch (error) {
     logger.error('Gemini API Error:', error);
 
-    if (error.message?.includes('API key') || error.message?.includes('API_KEY')) {
-      throw new Error('Gemini APIキーが無効です。Vercel環境変数にGEMINI_API_KEYを設定してください。');
+    if (error.message?.includes('API key') || error.message?.includes('API_KEY') || error.message?.includes('authentication_error') || error.message?.includes('OAuth token has expired')) {
+      throw new Error('Gemini APIキーが無効または期限切れです。新しいAPIキーを取得して環境変数を更新してください。');
     }
 
     if (error.message?.includes('not found') || error.message?.includes('models/')) {

@@ -9,7 +9,7 @@ const { auditUrlAnalysis, auditRateLimitViolation } = require('./utils/audit-log
 async function handler(req, res) {
   // CORS設定（セキュア）
   if (!setCorsHeaders(res, req)) {
-    sendErrorResponse(res, 403, 'CORS policy violation');
+    sendErrorResponse(res, 403, 'CORSポリシー違反');
     return;
   }
 
@@ -19,7 +19,7 @@ async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    sendErrorResponse(res, 405, 'Method not allowed');
+    sendErrorResponse(res, 405, 'POSTメソッドのみ許可されています');
     return;
   }
 
@@ -46,7 +46,7 @@ async function analyzeWithPlaywright(req, res) {
     // 入力検証
     const urlValidation = validateUrl(url);
     if (!urlValidation.valid) {
-      sendErrorResponse(res, 400, urlValidation.error || 'Invalid URL');
+      sendErrorResponse(res, 400, urlValidation.error || '無効なURLです');
       return;
     }
 
@@ -102,7 +102,7 @@ async function analyzeWithPlaywright(req, res) {
     const analysisResult = await analyzeWithPlaywrightAndGemini(validatedUrl);
 
     if (!analysisResult.success) {
-      sendErrorResponse(res, 400, analysisResult.error || 'Analysis failed', analysisResult.details);
+      sendErrorResponse(res, 400, analysisResult.error || '分析に失敗しました', analysisResult.details);
       return;
     }
 
@@ -185,12 +185,13 @@ async function analyzeWithPlaywrightAndGemini(url) {
     logger.info('Using Playwright for analysis');
 
     try {
-      // Phase 1: Playwrightでページスナップショットを取得
-      const snapshotResult = await getPageSnapshot(url);
+      // Phase 1 & 2: スナップショットとスクリーンショットを並列取得
+      const [snapshotResult, screenshotResult] = await Promise.all([
+        getPageSnapshot(url),
+        getPageScreenshot(url)
+      ]);
 
       if (snapshotResult.success) {
-        // Phase 2: スクリーンショットも取得（視覚的分析用）
-        const screenshotResult = await getPageScreenshot(url);
 
         const { analyzeWebsiteContent, analyzeWebsiteVisually } = require('./utils/gemini-analyzer');
 
@@ -215,7 +216,7 @@ async function analyzeWithPlaywrightAndGemini(url) {
         }
 
         if (!analysisResult.success) {
-          throw new Error(analysisResult.error || 'Gemini analysis failed');
+          throw new Error(analysisResult.error || 'Gemini分析に失敗しました');
         }
 
         const analysisData = analysisResult.analysis;
@@ -224,7 +225,7 @@ async function analyzeWithPlaywrightAndGemini(url) {
         const heroPrompt = analysisData.suggested_prompts?.find(p => p.type === 'hero');
         const suggestedPrompt = heroPrompt?.prompt ||
                                analysisData.suggested_prompts?.[0]?.prompt ||
-                               `Professional ${analysisData.industry} business image for ${snapshotResult.title} website`;
+                               `${snapshotResult.title}ウェブサイト用のプロフェッショナルな${analysisData.industry}ビジネス画像`;
 
         return {
           success: true,
@@ -309,7 +310,7 @@ async function analyzeWithCheerioFallback(url) {
     }, url);
 
     if (!analysisResult.success) {
-      throw new Error(analysisResult.error || 'Analysis failed');
+      throw new Error(analysisResult.error || '分析に失敗しました');
     }
 
     const analysisData = analysisResult.analysis;
@@ -318,7 +319,7 @@ async function analyzeWithCheerioFallback(url) {
     const heroPrompt = analysisData.suggested_prompts?.find(p => p.type === 'hero');
     const suggestedPrompt = heroPrompt?.prompt ||
                            analysisData.suggested_prompts?.[0]?.prompt ||
-                           `Professional ${analysisData.industry} business image for ${title} website`;
+                           `${title}ウェブサイト用のプロフェッショナルな${analysisData.industry}ビジネス画像`;
 
     return {
       success: true,

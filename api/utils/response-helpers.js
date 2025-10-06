@@ -38,30 +38,26 @@ function setCorsHeaders(res, req) {
     const allowedOrigins = config.allowedOrigins;
 
     if (!origin) {
-      // originがない場合（サーバー間通信など）は最初の許可originを使用
-      res.setHeader('Access-Control-Allow-Origin', '*');
-    } else {
-      // 文字列の完全一致または正規表現でチェック
-      const isAllowed = allowedOrigins.some(allowed => {
-        if (typeof allowed === 'string') {
-          return allowed === origin;
-        } else if (allowed instanceof RegExp) {
-          return allowed.test(origin);
-        }
-        return false;
-      });
+      // originがない場合（サーバー間通信など）は拒否
+      logger.warn('CORS: No origin header provided');
+      return false;
+    }
 
-      if (isAllowed) {
-        res.setHeader('Access-Control-Allow-Origin', origin);
-      } else {
-        logger.warn('CORS violation attempt:', { origin, userAgent: req?.headers?.['user-agent'] });
-        // フォールバック: Vercelデプロイメントは許可
-        if (origin && origin.includes('.vercel.app')) {
-          res.setHeader('Access-Control-Allow-Origin', origin);
-        } else {
-          res.setHeader('Access-Control-Allow-Origin', '*');
-        }
+    // 文字列の完全一致または正規表現でチェック
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return allowed === origin;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
       }
+      return false;
+    });
+
+    if (isAllowed) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+    } else {
+      logger.warn('CORS violation attempt:', { origin, userAgent: req?.headers?.['user-agent'] });
+      return false;
     }
   }
 
