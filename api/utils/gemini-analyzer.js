@@ -43,18 +43,26 @@ URL: ${url}
     "size_confidence": "規模判定の確信度（high/medium/low）",
     "size_indicators": ["規模を判断した根拠1", "根拠2"]
   },
+  "existing_images": {
+    "has_people_photos": false,
+    "people_photo_percentage": 0,
+    "primary_image_style": "minimalist",
+    "visual_tone": "startup-like",
+    "is_startup_style": true,
+    "detected_image_types": ["テキスト分析のため推測"]
+  },
   "suggested_prompts": [
     {
       "type": "hero",
-      "prompt": "ヒーロー画像用の詳細な英語プロンプト（具体的で視覚的に）"
+      "prompt": "ヒーロー画像用の詳細な英語プロンプト（人物なし、モダンでミニマルなスタイル優先）"
     },
     {
       "type": "service",
-      "prompt": "サービス紹介用の詳細な英語プロンプト"
+      "prompt": "サービス紹介用の詳細な英語プロンプト（人物なし優先）"
     },
     {
       "type": "about",
-      "prompt": "会社紹介用の詳細な英語プロンプト"
+      "prompt": "会社紹介用の詳細な英語プロンプト（人物は最小限）"
     }
   ],
   "image_recommendations": {
@@ -142,12 +150,22 @@ URL: ${url}
 説明: ${description}
 テキストコンテンツ: ${textContent}
 
-スクリーンショットを見て、以下の追加情報も含めて分析してください:
+スクリーンショットを詳細に分析して、以下の情報を抽出してください:
+
+**デザイン分析（重要）:**
 - 実際に使用されているカラースキーム
 - デザインスタイル（モダン、ミニマル、伝統的など）
 - レイアウトとビジュアル階層
-- 既存の画像の雰囲気とトーン
 - UI/UXデザインの特徴
+
+**既存画像の詳細分析（非常に重要）:**
+- 既存の画像に人物が写っているか（yes/no）
+- 人物写真の割合（0-100%）
+- 画像のスタイル（photo/illustration/3d/abstract/minimalist/mixed）
+- 画像の雰囲気（professional/casual/modern/traditional/startup-like）
+- 海外スタートアップのようなモダンでミニマルなデザインか（yes/no）
+
+**従業員情報:**
 - チームページや会社紹介に表示されている人数
 
 以下の情報をJSON形式で返してください:
@@ -173,8 +191,16 @@ URL: ${url}
   "visual_analysis": {
     "color_scheme": "実際のカラースキームの詳細",
     "layout_style": "レイアウトの特徴",
-    "image_style": "既存画像のスタイル分析",
+    "image_style": "既存画像のスタイル（photo/illustration/3d/abstract/minimalist/mixed）",
     "ui_elements": "特徴的なUI要素"
+  },
+  "existing_images": {
+    "has_people_photos": "既存画像に人物が含まれているか（true/false）",
+    "people_photo_percentage": 人物写真の割合（0-100の数値）,
+    "primary_image_style": "主要な画像スタイル（photo/illustration/3d/abstract/minimalist/gradient/mixed）",
+    "visual_tone": "ビジュアルの雰囲気（professional/casual/modern/traditional/startup-like/corporate）",
+    "is_startup_style": "海外スタートアップのようなモダンでミニマルなデザインか（true/false）",
+    "detected_image_types": ["検出された画像の種類1（例: product photos, office photos, illustrations, icons）", "種類2"]
   },
   "suggested_prompts": [
     {
@@ -200,7 +226,13 @@ URL: ${url}
 
 重要:
 - スクリーンショットから実際のデザイン要素を詳しく分析してください
-- プロンプトは既存のビジュアルスタイルと調和するように最適化してください
+- **既存画像分析が最優先**: 既存のホームページに使用されている画像スタイルを正確に把握してください
+- **人物判定のルール**:
+  * 既存画像に人物写真が少ない（30%未満）場合: 生成画像も人物なしを推奨
+  * 既存画像が主にイラスト/3D/抽象的な場合: 同じスタイルを推奨
+  * スタートアップスタイルの場合: ミニマル、グラデーション、3D、イラストを優先
+  * **デフォルト**: 明確な証拠がない限り人物なしを推奨
+- プロンプトは既存のビジュアルスタイルと完全に調和するように最適化してください
 - 英語で具体的かつ詳細に記述してください
 - 日本のビジネス文化に適した表現を使用してください
 - 従業員数の判定について（重要）:
@@ -324,10 +356,18 @@ function getFallbackAnalysis() {
       size_confidence: 'low',
       size_indicators: ['No employee information detected - defaulting to solo entrepreneur']
     },
+    existing_images: {
+      has_people_photos: false,
+      people_photo_percentage: 0,
+      primary_image_style: 'minimalist',
+      visual_tone: 'startup-like',
+      is_startup_style: true,
+      detected_image_types: ['Unknown - no screenshot available']
+    },
     suggested_prompts: [
       {
         type: 'hero',
-        prompt: 'Professional Japanese business office, modern corporate environment, clean design, natural lighting, high quality photography, 8k resolution, no people'
+        prompt: 'Modern minimalist design, clean aesthetic, soft gradients, abstract shapes, professional business environment, no people, no humans, contemporary style, startup-inspired visuals, high quality, 8k resolution'
       }
     ],
     image_recommendations: {

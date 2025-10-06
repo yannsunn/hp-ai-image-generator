@@ -50,7 +50,8 @@ async function analyzeWithPlaywright(req, res) {
                   industry: cachedResult.industry,
                   contentType: cachedResult.content_type,
                   companySize: cachedResult.company_info?.company_size,
-                  employeeCount: cachedResult.company_info?.employee_count
+                  employeeCount: cachedResult.company_info?.employee_count,
+                  existing_images: cachedResult.existing_images
                 }
               );
               generatedImage = {
@@ -101,7 +102,8 @@ async function analyzeWithPlaywright(req, res) {
               industry: analysisResult.industry,
               contentType: analysisResult.content_type,
               companySize: analysisResult.company_info?.company_size,
-              employeeCount: analysisResult.company_info?.employee_count
+              employeeCount: analysisResult.company_info?.employee_count,
+              existing_images: analysisResult.existing_images
             }
           );
 
@@ -226,6 +228,7 @@ async function analyzeWithPlaywrightAndGemini(url) {
           target_audience: analysisData.target_audience || 'general',
           key_features: analysisData.key_features || [],
           company_info: analysisData.company_info || null,
+          existing_images: analysisData.existing_images || null,
           suggested_prompts: analysisData.suggested_prompts || [],
           suggested_prompt: suggestedPrompt,
           image_recommendations: analysisData.image_recommendations || {},
@@ -320,6 +323,7 @@ async function analyzeWithCheerioFallback(url) {
       target_audience: analysisData.target_audience || 'general',
       key_features: analysisData.key_features || [],
       company_info: analysisData.company_info || null,
+      existing_images: analysisData.existing_images || null,
       suggested_prompts: analysisData.suggested_prompts || [],
       suggested_prompt: suggestedPrompt,
       image_recommendations: analysisData.image_recommendations || {}

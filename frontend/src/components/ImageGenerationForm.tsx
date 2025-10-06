@@ -303,7 +303,8 @@ const ImageGenerationForm: React.FC = () => {
           suggested_prompts: suggestedPrompts,
           industry: analysisData?.industry,
           url: url,
-          company_info: analysisData?.company_info
+          company_info: analysisData?.company_info,
+          existing_images: analysisData?.existing_images
         })
       });
 

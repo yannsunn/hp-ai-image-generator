@@ -50,11 +50,15 @@ function enhancePromptForJapan(prompt, context = {}) {
     );
   }
 
+  // 既存画像のスタイルを取得
+  const existingImages = context.existing_images || context.existingImages;
+  const visualStyle = getVisualStyleEnhancements(existingImages, needsPeople);
+
   // 業界別とコンテンツタイプ別の追加要素を取得
   const industrySpecific = getIndustryEnhancements(context, needsPeople);
   const contentTypeSpecific = getContentTypeEnhancements(context, needsPeople);
 
-  japaneseEnhancements.push(...industrySpecific, ...contentTypeSpecific);
+  japaneseEnhancements.push(...visualStyle, ...industrySpecific, ...contentTypeSpecific);
 
   // 会社規模に応じて人数を調整（人物が必要な場合のみ）
   if (needsPeople) {
@@ -80,44 +84,202 @@ function enhancePromptForJapan(prompt, context = {}) {
   return enhancedPrompt;
 }
 
+// 既存画像のビジュアルスタイルに基づくプロンプト強化
+function getVisualStyleEnhancements(existingImages, needsPeople) {
+  const enhancements = [];
+
+  if (!existingImages) {
+    return enhancements;
+  }
+
+  const primaryStyle = existingImages.primary_image_style;
+  const visualTone = existingImages.visual_tone;
+  const isStartupStyle = existingImages.is_startup_style;
+
+  // スタートアップスタイル: モダン、ミニマル、グラデーション
+  if (isStartupStyle === true || visualTone === 'startup-like') {
+    enhancements.push(
+      'modern minimalist design',
+      'clean aesthetic',
+      'soft gradients',
+      'pastel color palette',
+      'abstract shapes',
+      'geometric patterns',
+      'contemporary style',
+      'startup-inspired visuals',
+      'trendy design',
+      'sleek and modern'
+    );
+    return enhancements;
+  }
+
+  // イラストスタイル
+  if (primaryStyle === 'illustration') {
+    enhancements.push(
+      'professional illustration',
+      'vector graphics',
+      'flat design',
+      'illustrated elements',
+      'graphic design style',
+      'clean line art',
+      'modern illustration aesthetic'
+    );
+    return enhancements;
+  }
+
+  // 3Dスタイル
+  if (primaryStyle === '3d') {
+    enhancements.push(
+      '3D rendered graphics',
+      'three-dimensional design',
+      'modern 3D aesthetic',
+      'clean 3D modeling',
+      'contemporary 3D visualization',
+      'stylized 3D elements',
+      'smooth 3D surfaces'
+    );
+    return enhancements;
+  }
+
+  // 抽象的スタイル
+  if (primaryStyle === 'abstract') {
+    enhancements.push(
+      'abstract composition',
+      'artistic abstraction',
+      'conceptual imagery',
+      'non-representational design',
+      'modern abstract art',
+      'geometric abstraction',
+      'minimal abstract elements'
+    );
+    return enhancements;
+  }
+
+  // ミニマリストスタイル
+  if (primaryStyle === 'minimalist') {
+    enhancements.push(
+      'minimalist design',
+      'clean and simple',
+      'minimal elements',
+      'uncluttered composition',
+      'negative space',
+      'essential simplicity',
+      'refined minimalism'
+    );
+    return enhancements;
+  }
+
+  // グラデーションスタイル
+  if (primaryStyle === 'gradient') {
+    enhancements.push(
+      'gradient backgrounds',
+      'smooth color transitions',
+      'modern gradient design',
+      'colorful gradients',
+      'vibrant color blends',
+      'soft gradient overlay',
+      'contemporary gradient aesthetic'
+    );
+    return enhancements;
+  }
+
+  // 写真スタイル（リアル写真）
+  if (primaryStyle === 'photo') {
+    if (!needsPeople) {
+      enhancements.push(
+        'professional product photography',
+        'architectural photography',
+        'interior design photography',
+        'still life photography',
+        'environmental photography',
+        'workplace photography without people',
+        'object-focused composition'
+      );
+    }
+    return enhancements;
+  }
+
+  // その他・混合スタイル
+  if (visualTone === 'modern') {
+    enhancements.push(
+      'modern design aesthetic',
+      'contemporary style',
+      'clean modern look'
+    );
+  } else if (visualTone === 'professional') {
+    enhancements.push(
+      'professional quality',
+      'business-appropriate imagery',
+      'corporate aesthetic'
+    );
+  } else if (visualTone === 'casual') {
+    enhancements.push(
+      'casual and approachable',
+      'friendly atmosphere',
+      'relaxed style'
+    );
+  }
+
+  return enhancements;
+}
+
 // 人物が必要かどうかを判定
 function shouldIncludePeople(context) {
   const contentType = context.contentType || context.contentTypes?.[0] || 'hero';
   const industry = context.industry || 'other';
+  const existingImages = context.existing_images || context.existingImages;
+
+  // **最優先**: 既存画像の分析結果を確認
+  if (existingImages) {
+    // スタートアップスタイルの場合は人物なし
+    if (existingImages.is_startup_style === true || existingImages.visual_tone === 'startup-like') {
+      return false;
+    }
+
+    // イラスト、3D、抽象的なスタイルの場合は人物なし
+    const noPeopleStyles = ['illustration', '3d', 'abstract', 'minimalist', 'gradient'];
+    if (noPeopleStyles.includes(existingImages.primary_image_style)) {
+      return false;
+    }
+
+    // 既存の人物写真が少ない（30%未満）場合は人物なし
+    if (existingImages.people_photo_percentage !== null && existingImages.people_photo_percentage < 30) {
+      return false;
+    }
+
+    // 既存画像に人物がいない場合は人物なし
+    if (existingImages.has_people_photos === false) {
+      return false;
+    }
+  }
 
   // コンテンツタイプ別の判定
-  const peopleRequiredTypes = ['team', 'about', 'testimonial'];
-  const peopleNotRequiredTypes = ['product', 'contact', 'portfolio'];
+  const peopleRequiredTypes = ['team', 'testimonial']; // aboutを削除
+  const peopleNotRequiredTypes = ['product', 'contact', 'portfolio', 'hero', 'service']; // hero, serviceを追加
 
-  // 絶対に人が必要
+  // team と testimonial のみ人が必要
   if (peopleRequiredTypes.includes(contentType)) {
+    // ただし、既存画像に人がいない場合は人なし
+    if (existingImages && existingImages.has_people_photos === false) {
+      return false;
+    }
     return true;
   }
 
-  // 人は不要
+  // その他は基本的に人なし
   if (peopleNotRequiredTypes.includes(contentType)) {
     return false;
   }
 
-  // hero や service は業界による
-  if (contentType === 'hero' || contentType === 'service') {
-    // 人が必要な業界
-    const peopleIndustries = ['consulting', 'legal', 'education'];
-    // 人が不要な業界
-    const noPeopleIndustries = ['technology', 'manufacturing', 'realestate', 'retail', 'restaurant', 'healthcare'];
-
-    if (peopleIndustries.includes(industry)) {
+  // about は既存画像に人がいる場合のみ
+  if (contentType === 'about') {
+    if (existingImages && existingImages.has_people_photos === true && existingImages.people_photo_percentage >= 30) {
       return true;
     }
-    if (noPeopleIndustries.includes(industry)) {
-      return false;
-    }
-
-    // デフォルト: hero と service は人なし
     return false;
   }
 
-  // その他のコンテンツタイプはデフォルトで人なし
+  // デフォルト: 人なし
   return false;
 }
 
