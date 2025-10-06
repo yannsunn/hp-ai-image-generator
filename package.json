@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "AI-powered image generation system for Japanese homepage creation",
   "scripts": {
+    "setup": "node setup.js",
     "dev": "cd frontend && npm run dev",
     "build": "cd frontend && npm run build",
     "start": "cd frontend && npm run start",
