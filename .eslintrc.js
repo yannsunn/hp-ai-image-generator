@@ -118,6 +118,7 @@ module.exports = {
     '*.d.ts',
     '*.config.js',
     '.eslintrc.js',
+    'setup.js',
     'frontend/check-env-vars.js',
     'frontend/src/main.jsx',
     'frontend/src/App.jsx',

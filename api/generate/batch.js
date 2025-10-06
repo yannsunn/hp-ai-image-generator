@@ -30,7 +30,7 @@ async function batchGenerateImages(req, res) {
       return sendErrorResponse(res, 400, validation.error);
     }
 
-    const { prompt, count, context, api: selectedApi, additionalInstructions } = validation.sanitized;
+    const { prompt, count, context, additionalInstructions } = validation.sanitized;
     
     // 日本語の追加指示を英語に変換
     const translatedInstructions = translateInstructions(additionalInstructions);

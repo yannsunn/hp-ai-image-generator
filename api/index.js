@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
       try {
         let enhancedPrompt = prompt;
-        let analysisData = {
+        const analysisData = {
           content_type: context.contentType || 'general',
           industry: context.industry || 'general',
           style_suggestions: ['professional', 'clean', 'modern'],

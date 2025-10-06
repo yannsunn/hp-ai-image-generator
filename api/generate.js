@@ -36,7 +36,7 @@ async function generateImage(req, res) {
     }
 
     const validatedRequest = validation.sanitized;
-    let { prompt, additionalInstructions = [], api, context } = validatedRequest;
+    const { prompt, additionalInstructions = [], api, context } = validatedRequest;
 
     logger.info('Validated request:', { prompt, api, context });
     
@@ -70,7 +70,7 @@ async function generateImage(req, res) {
       logger.info('Combined prompt:', combinedPrompt);
 
       switch (apiToUse) {
-        case 'gemini':
+        case 'gemini': {
           const apiKeyCheck = checkGeminiApiKey();
           if (!apiKeyCheck.valid) {
             sendErrorResponse(res, 400, apiKeyCheck.error, apiKeyCheck.details);
@@ -84,6 +84,7 @@ async function generateImage(req, res) {
           );
           logger.info('generateWithGemini completed successfully');
           break;
+        }
 
         default:
           sendErrorResponse(res, 400, '無効なAPIが指定されました',
