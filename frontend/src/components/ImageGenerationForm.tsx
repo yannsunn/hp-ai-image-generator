@@ -1,6 +1,68 @@
 import React, { useState } from 'react';
 import { Loader2, Sparkles, Download, CheckCircle2, AlertCircle, ExternalLink, Maximize2 } from 'lucide-react';
 
+// 画像タイプの日本語変換
+const imageTypeLabels: Record<string, string> = {
+  'hero': 'ヒーロー',
+  'service': 'サービス',
+  'about': '会社紹介',
+  'team': 'チーム',
+  'contact': 'お問い合わせ',
+  'cta': '行動喚起',
+  'feature': '特徴',
+  'testimonial': 'お客様の声',
+  'portfolio': 'ポートフォリオ',
+  'background': '背景',
+  'banner': 'バナー',
+  'icon': 'アイコン',
+  'logo': 'ロゴ',
+  'product': '製品',
+  'general': '一般'
+};
+
+// 英語のタイプを日本語に変換
+const translateImageType = (type: string): string => {
+  return imageTypeLabels[type.toLowerCase()] || type;
+};
+
+// 業界名の日本語変換
+const industryLabels: Record<string, string> = {
+  'consulting': 'コンサルティング',
+  'technology': 'テクノロジー',
+  'healthcare': '医療・ヘルスケア',
+  'finance': '金融',
+  'education': '教育',
+  'retail': '小売',
+  'real-estate': '不動産',
+  'manufacturing': '製造業',
+  'food': '飲食',
+  'travel': '旅行・観光',
+  'entertainment': 'エンターテインメント',
+  'ecommerce': 'EC・オンラインショップ',
+  'saas': 'SaaS・ソフトウェア',
+  'agency': '代理店',
+  'legal': '法律',
+  'other': 'その他'
+};
+
+const translateIndustry = (industry: string): string => {
+  return industryLabels[industry.toLowerCase()] || industry;
+};
+
+// コンテンツタイプの日本語変換
+const contentTypeLabels: Record<string, string> = {
+  'service': 'サービス紹介',
+  'product': '商品紹介',
+  'company': '企業紹介',
+  'hero': 'ヒーロー',
+  'about': '会社概要',
+  'general': '一般'
+};
+
+const translateContentType = (type: string): string => {
+  return contentTypeLabels[type.toLowerCase()] || type;
+};
+
 const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -107,8 +169,8 @@ const ImageGenerationForm: React.FC = () => {
 
         // 分析情報を表示
         const info = [];
-        if (data.industry) info.push(`業界: ${data.industry}`);
-        if (data.content_type) info.push(`タイプ: ${data.content_type}`);
+        if (data.industry) info.push(`業界: ${translateIndustry(data.industry)}`);
+        if (data.content_type) info.push(`タイプ: ${translateContentType(data.content_type)}`);
         if (data.suggested_prompts && data.suggested_prompts.length > 0) {
           info.push(`画像候補: ${data.suggested_prompts.length}箇所`);
         }
@@ -387,7 +449,7 @@ const ImageGenerationForm: React.FC = () => {
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-900 mb-1">
-                        {promptObj.type || promptObj.section || '画像'}
+                        {translateImageType(promptObj.type || promptObj.section || '画像')}
                       </p>
                       <p className="text-xs text-gray-600 line-clamp-2">
                         {promptObj.description || promptObj.prompt}
@@ -432,7 +494,7 @@ const ImageGenerationForm: React.FC = () => {
                         <span className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">
                           {index + 1}
                         </span>
-                        {img.type || img.section || '画像'}
+                        {translateImageType(img.type || img.section || '画像')}
                       </h4>
                       <p className="text-xs text-gray-600 line-clamp-2">
                         {img.description}
