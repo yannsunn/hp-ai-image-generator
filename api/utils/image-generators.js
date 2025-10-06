@@ -11,14 +11,24 @@ function enhancePromptForJapan(prompt, context = {}) {
     'high quality',
     'professional photography',
     '8k resolution',
-    'no text',
-    'no words',
-    'no letters',
-    'no watermarks',
-    'no captions',
-    'no signage',
-    'text-free image',
-    'clean image without any text overlay'
+    'generic and brand-free',
+    'no recognizable brands',
+    'no company logos',
+    'no trademarks',
+    'absolutely no text',
+    'absolutely no words',
+    'absolutely no letters',
+    'absolutely no watermarks',
+    'absolutely no captions',
+    'absolutely no signage',
+    'completely text-free image',
+    'clean image without any text overlay',
+    'no typography',
+    'no written content',
+    'no labels',
+    'no numbers',
+    'no symbols',
+    'brand-neutral imagery'
   ];
 
   // 人物が必要かどうかを判定
@@ -44,6 +54,9 @@ function enhancePromptForJapan(prompt, context = {}) {
       'clean composition',
       'modern aesthetic',
       'business-appropriate imagery',
+      'generic objects and spaces',
+      'brand-neutral products',
+      'unbranded items',
       'no people',
       'no humans',
       'no faces'
@@ -68,15 +81,26 @@ function enhancePromptForJapan(prompt, context = {}) {
     }
   }
 
-  // ネガティブプロンプトを構築
-  let negativePrompt = 'negative prompt: low quality, blurry, distorted, bad anatomy, unrealistic, text, words, letters, captions, watermarks, signage, labels, typography';
+  // ネガティブプロンプトを構築（商標・ブランド保護を最優先）
+  let negativePrompt = 'negative prompt: low quality, blurry, distorted, bad anatomy, unrealistic';
+
+  // **商標・ブランド除外（最重要）**
+  negativePrompt += ', logos, brand logos, company logos, trademarks, brand names, company names, corporate branding';
+  negativePrompt += ', Amazon, Google, Apple, Microsoft, Facebook, Meta, Twitter, Instagram, YouTube, Netflix, Tesla, Nike, Adidas';
+  negativePrompt += ', McDonald, Starbucks, Coca-Cola, Pepsi, Samsung, Sony, Toyota, Honda, BMW, Mercedes';
+  negativePrompt += ', any recognizable brands, any corporate logos, any trademarked symbols, branded products';
+
+  // **テキスト・文字の完全除外**
+  negativePrompt += ', text, words, letters, numbers, captions, watermarks, signage, labels, typography, written content';
+  negativePrompt += ', any text overlay, any written words, any characters, any symbols, any alphanumeric content';
+  negativePrompt += ', UI elements with text, buttons with text, signs with text, packaging with text, screens with text';
 
   if (needsPeople) {
     // 人物が必要な場合は重複する顔を除外
     negativePrompt += ', duplicate faces, identical people, cloned faces, same person repeated, copy-paste faces, western faces, caucasian features';
   } else {
     // 人物が不要な場合は人物全体を除外
-    negativePrompt += ', people, humans, person, faces, crowds, groups of people';
+    negativePrompt += ', people, humans, person, faces, crowds, groups of people, any human figures';
   }
 
   const enhancedPrompt = `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
@@ -188,12 +212,15 @@ function getVisualStyleEnhancements(existingImages, needsPeople) {
     if (!needsPeople) {
       enhancements.push(
         'professional product photography',
+        'generic unbranded items',
+        'brand-neutral photography',
         'architectural photography',
         'interior design photography',
         'still life photography',
         'environmental photography',
         'workplace photography without people',
-        'object-focused composition'
+        'object-focused composition',
+        'no visible logos or brands'
       );
     }
     return enhancements;
@@ -329,8 +356,8 @@ function getIndustryEnhancements(context, needsPeople) {
 
   const industrySettings = {
     'technology': {
-      withPeople: ['modern tech office', 'digital workspace', 'innovative technology environment'],
-      withoutPeople: ['modern tech office', 'digital devices', 'innovative technology products', 'workspace setup', 'computer screens']
+      withPeople: ['modern tech office', 'digital workspace', 'innovative technology environment', 'generic tech setting'],
+      withoutPeople: ['modern tech office', 'generic digital devices', 'unbranded technology products', 'minimal workspace setup', 'clean computer workspace', 'brand-neutral tech equipment']
     },
     'healthcare': {
       withPeople: ['medical facility', 'healthcare professionals', 'clean medical environment'],
@@ -349,12 +376,12 @@ function getIndustryEnhancements(context, needsPeople) {
       withoutPeople: ['consulting office interior', 'professional workspace', 'modern meeting room', 'business environment']
     },
     'restaurant': {
-      withPeople: ['restaurant interior', 'culinary environment', 'dining establishment'],
-      withoutPeople: ['restaurant interior', 'food presentation', 'culinary dishes', 'dining ambiance', 'table setting']
+      withPeople: ['restaurant interior', 'culinary environment', 'dining establishment', 'generic dining space'],
+      withoutPeople: ['restaurant interior', 'generic food presentation', 'unbranded culinary dishes', 'clean dining ambiance', 'simple table setting', 'brand-neutral tableware']
     },
     'retail': {
-      withPeople: ['retail store', 'shopping environment', 'commercial space'],
-      withoutPeople: ['retail store interior', 'product display', 'shopping environment', 'merchandise showcase']
+      withPeople: ['retail store', 'shopping environment', 'commercial space', 'generic retail setting'],
+      withoutPeople: ['retail store interior', 'generic product display', 'unbranded merchandise', 'clean shopping environment', 'brand-neutral products']
     },
     'manufacturing': {
       withPeople: ['modern factory', 'industrial setting', 'production facility'],
@@ -400,8 +427,8 @@ function getContentTypeEnhancements(context, needsPeople) {
       withoutPeople: ['service presentation', 'professional showcase', 'solution-focused', 'service visualization']
     },
     'product': {
-      withPeople: ['product showcase', 'feature highlights', 'professional presentation'],
-      withoutPeople: ['product showcase', 'feature highlights', 'professional presentation', 'product-focused', 'clean product display']
+      withPeople: ['generic product showcase', 'feature highlights', 'professional presentation', 'unbranded product'],
+      withoutPeople: ['generic product showcase', 'unbranded product display', 'brand-neutral items', 'professional presentation', 'product-focused', 'clean product display', 'no logos on products']
     },
     'team': {
       withPeople: ['team collaboration', 'professional teamwork', 'group dynamics', 'collaborative spirit'],
