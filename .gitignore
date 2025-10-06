@@ -20,6 +20,7 @@ instance/
 .env.production.local
 .env.development.local
 .env.test.local
+.env.vercel
 
 # 注意: .env はテンプレートとして追跡されます（機密情報を含まない）
 
@@ -63,8 +64,4 @@ htmlcov/
 .pytest_cache/
 
 # Documentation
-*.md.backup/.env
-.env*.local
-.env.production
-
-.vercel
+*.md.backup

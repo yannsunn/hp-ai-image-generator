@@ -1,35 +1,13 @@
 const logger = require('./utils/logger');
-const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
-const { rateLimiter } = require('./utils/rate-limiter');
+const { sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 const { withErrorHandler } = require('./utils/global-error-handler');
 const { generateWithGemini } = require('./utils/image-generators');
+const { withStandardMiddleware, checkGeminiApiKey } = require('./utils/middleware');
 
 async function handler(req, res) {
-  // CORS設定（セキュア）
-  if (!setCorsHeaders(res, req)) {
-    sendErrorResponse(res, 403, 'CORSポリシー違反');
-    return;
-  }
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    sendErrorResponse(res, 405, 'POSTメソッドのみ許可されています');
-    return;
-  }
-
-  // レート制限チェック
-  const rateLimitResult = await rateLimiter.checkApiLimit(req, 'generate-all-images');
-  if (!rateLimitResult.allowed) {
-    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
-    res.setHeader('Retry-After', retryAfter.toString());
-    sendErrorResponse(res, 429, 'レート制限に達しました',
-      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
-    return;
-  }
+  // 標準ミドルウェア適用（CORS、OPTIONS、メソッド検証、レート制限）
+  const canProceed = await withStandardMiddleware(req, res, 'generate-all-images');
+  if (!canProceed) return;
 
   await generateAllImages(req, res);
 }
@@ -44,8 +22,9 @@ async function generateAllImages(req, res) {
       return sendErrorResponse(res, 400, 'suggested_prompts配列が必要です');
     }
 
-    if (!process.env.GEMINI_API_KEY) {
-      return sendErrorResponse(res, 500, 'Gemini APIキーが設定されていません');
+    const apiKeyCheck = checkGeminiApiKey();
+    if (!apiKeyCheck.valid) {
+      return sendErrorResponse(res, 500, apiKeyCheck.error, apiKeyCheck.details);
     }
 
     logger.info(`Generating ${suggested_prompts.length} images for ${url}`);

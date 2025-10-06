@@ -1,38 +1,18 @@
 const { validateGenerateRequest } = require('../utils/input-validator');
-const { translateInstruction, translateInstructions } = require('../utils/japanese-to-english');
+const { translateInstructions } = require('../utils/japanese-to-english');
 const {
   enhancePromptForJapan,
   generateWithGemini,
   getResolution
 } = require('../utils/image-generators');
 const logger = require('../utils/logger');
-const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
-const { rateLimiter } = require('../utils/rate-limiter');
-
+const { sendErrorResponse, sendSuccessResponse } = require('../utils/response-helpers');
+const { withStandardMiddleware, checkGeminiApiKey } = require('../utils/middleware');
 
 module.exports = async function handler(req, res) {
-  // CORS設定（セキュア）
-  if (!setCorsHeaders(res, req)) {
-    return sendErrorResponse(res, 403, 'CORS policy violation');
-  }
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    return sendErrorResponse(res, 405, 'Method not allowed');
-  }
-
-  // レート制限チェック
-  const rateLimitResult = rateLimiter.checkApiLimit(req, 'generate/batch');
-  if (!rateLimitResult.allowed) {
-    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
-    res.setHeader('Retry-After', retryAfter.toString());
-    return sendErrorResponse(res, 429, 'レート制限に達しました',
-      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
-  }
+  // 標準ミドルウェア適用（CORS、OPTIONS、メソッド検証、レート制限）
+  const canProceed = await withStandardMiddleware(req, res, 'generate/batch');
+  if (!canProceed) return;
 
   return batchGenerateImages(req, res);
 };
@@ -67,8 +47,9 @@ async function batchGenerateImages(req, res) {
     apiToUse = 'gemini';
 
     // Gemini APIキーの確認
-    if (!process.env.GEMINI_API_KEY) {
-      return sendErrorResponse(res, 500, 'Gemini APIキーが設定されていません。Vercelの環境変数にGEMINI_API_KEYを設定してください');
+    const apiKeyCheck = checkGeminiApiKey();
+    if (!apiKeyCheck.valid) {
+      return sendErrorResponse(res, 500, apiKeyCheck.error, apiKeyCheck.details);
     }
     
 
@@ -164,10 +145,6 @@ async function generateSingleImage(prompt, context, index) {
   const startTime = Date.now();
 
   try {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('Gemini API key is not configured');
-    }
-
     // 日本向けのプロンプトを強化
     const japanesePrompt = enhancePromptForJapan(prompt, context);
     const result = await generateWithGemini(japanesePrompt, process.env.GEMINI_API_KEY, context);

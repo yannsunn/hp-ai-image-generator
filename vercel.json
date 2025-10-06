@@ -1,11 +1,12 @@
 {
-  "buildCommand": "cd frontend && npm cache clean --force && rm -rf node_modules package-lock.json && npm install && npm run build",
+  "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
   "installCommand": "echo 'Skip root install'",
   "framework": null,
   "functions": {
     "api/**/*.js": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "memory": 1024
     }
   },
   "rewrites": [

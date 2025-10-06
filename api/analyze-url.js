@@ -1,45 +1,15 @@
 const fetch = require('node-fetch');
 const cheerio = require('cheerio');
 const logger = require('./utils/logger');
-const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
+const { sendErrorResponse } = require('./utils/response-helpers');
 const { validateUrl } = require('./utils/input-validator');
-const { rateLimiter } = require('./utils/rate-limiter');
 const { analyzeContent } = require('./utils/content-analyzer');
 const { withErrorHandler } = require('./utils/global-error-handler');
-
-// URLの安全性検証
-function isValidUrl(url) {
-  try {
-    const urlObj = new URL(url);
-    
-    // プロトコル制限
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
-      return false;
-    }
-    
-    // 内部ネットワークアクセス防止
-    const hostname = urlObj.hostname.toLowerCase();
-    if (hostname === 'localhost' || 
-        hostname === '127.0.0.1' ||
-        hostname.match(/^192\.168\./) ||
-        hostname.match(/^10\./) ||
-        hostname.match(/^172\.(1[6-9]|2[0-9]|3[01])\./)) {
-      return false;
-    }
-    
-    return true;
-  } catch {
-    return false;
-  }
-}
+const { withStandardMiddleware } = require('./utils/middleware');
 
 // URLからコンテンツを取得して解析
 async function analyzeUrl(url) {
   try {
-    // URLの安全性検証
-    if (!isValidUrl(url)) {
-      throw new Error('Invalid URL or access to internal network not allowed');
-    }
     
     // HTMLを取得
     const controller = new AbortController();
@@ -197,31 +167,9 @@ async function analyzeUrl(url) {
 }
 
 async function handler(req, res) {
-  // CORS設定（セキュア）
-  if (!setCorsHeaders(res, req)) {
-    sendErrorResponse(res, 403, 'CORS policy violation');
-    return;
-  }
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== 'POST') {
-    sendErrorResponse(res, 405, 'Method not allowed');
-    return;
-  }
-
-  // レート制限チェック
-  const rateLimitResult = rateLimiter.checkApiLimit(req, 'analyze-url');
-  if (!rateLimitResult.allowed) {
-    const retryAfter = Math.ceil(rateLimitResult.timeUntilReset / 1000);
-    res.setHeader('Retry-After', retryAfter.toString());
-    sendErrorResponse(res, 429, 'レート制限に達しました', 
-      `1分間に${rateLimitResult.maxRequests}回までのリクエストが可能です。${retryAfter}秒後に再試行してください。`);
-    return;
-  }
+  // 標準ミドルウェア適用（CORS、OPTIONS、メソッド検証、レート制限）
+  const canProceed = await withStandardMiddleware(req, res, 'analyze-url');
+  if (!canProceed) return;
 
   await analyzeUrlHandler(req, res);
 }

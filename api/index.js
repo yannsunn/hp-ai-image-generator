@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 const logger = require('./utils/logger');
 const { setCorsHeaders, sendErrorResponse, sendSuccessResponse } = require('./utils/response-helpers');
 
