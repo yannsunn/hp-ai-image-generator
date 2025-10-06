@@ -63,6 +63,93 @@ const translateContentType = (type: string): string => {
   return contentTypeLabels[type.toLowerCase()] || type;
 };
 
+// 画像の配置場所と使用目的のガイダンス
+const imageUsageGuide: Record<string, { placement: string; purpose: string; tips: string }> = {
+  'hero': {
+    placement: 'トップページの最上部（ファーストビュー）',
+    purpose: '訪問者の注意を引き、サイトの第一印象を決定する重要な画像',
+    tips: '画面幅いっぱいに表示し、キャッチコピーと組み合わせて使用すると効果的です'
+  },
+  'service': {
+    placement: 'サービス紹介セクション',
+    purpose: '提供するサービスや製品の内容を視覚的に伝える',
+    tips: 'テキスト説明の横または上に配置し、サービスの特徴を直感的に理解できるようにします'
+  },
+  'about': {
+    placement: '会社紹介・企業概要ページ',
+    purpose: '企業の雰囲気や価値観、チームの様子を伝える',
+    tips: 'About UsやCompanyセクションに配置し、信頼感と親近感を演出します'
+  },
+  'team': {
+    placement: 'チーム紹介セクション',
+    purpose: 'スタッフやチームメンバーの雰囲気を伝える',
+    tips: 'メンバー紹介の背景やヘッダー画像として使用し、チームの一体感を表現します'
+  },
+  'contact': {
+    placement: 'お問い合わせページ',
+    purpose: '問い合わせを促し、親しみやすい雰囲気を作る',
+    tips: 'お問い合わせフォームの上部や背景に配置し、気軽に連絡できる雰囲気を演出します'
+  },
+  'cta': {
+    placement: '行動喚起（CTA）セクション',
+    purpose: '資料請求や登録などの行動を促す',
+    tips: 'ボタンの近くに配置し、ユーザーのアクションを後押しします'
+  },
+  'feature': {
+    placement: '特徴・強みセクション',
+    purpose: '製品やサービスの特徴を視覚的に強調する',
+    tips: '各特徴の説明と一緒に配置し、差別化ポイントを明確にします'
+  },
+  'testimonial': {
+    placement: 'お客様の声・実績紹介セクション',
+    purpose: '信頼性を高め、導入事例や評価を視覚化する',
+    tips: 'お客様の声の背景や実績数値と組み合わせて使用します'
+  },
+  'portfolio': {
+    placement: '実績・作品紹介ページ',
+    purpose: '過去の実績や作品を魅力的に見せる',
+    tips: 'グリッド形式で複数配置し、ポートフォリオギャラリーを作成します'
+  },
+  'background': {
+    placement: 'セクションの背景',
+    purpose: 'ページ全体の雰囲気を統一し、視覚的な階層を作る',
+    tips: '薄く透過させてテキストの背景として使用すると効果的です'
+  },
+  'banner': {
+    placement: 'ページ上部のバナーエリア',
+    purpose: 'キャンペーンや重要な情報を目立たせる',
+    tips: '期間限定のお知らせやキャンペーン告知に使用します'
+  },
+  'icon': {
+    placement: 'サービス説明やメニューアイコン',
+    purpose: '視覚的な識別子として機能を表現する',
+    tips: '小さいサイズで使用し、テキストラベルと組み合わせます'
+  },
+  'logo': {
+    placement: 'ヘッダーやフッター',
+    purpose: 'ブランドアイデンティティを表現する',
+    tips: 'ナビゲーションバーの左上に配置するのが一般的です'
+  },
+  'product': {
+    placement: '商品紹介ページ',
+    purpose: '商品の魅力や特徴を視覚的に伝える',
+    tips: '複数の角度や使用シーンを見せると効果的です'
+  },
+  'general': {
+    placement: '汎用的に使用可能',
+    purpose: 'コンテンツを補完し、視覚的な魅力を高める',
+    tips: 'テキストの間に挿入して読みやすさを向上させます'
+  }
+};
+
+const getImageUsageGuide = (type: string) => {
+  return imageUsageGuide[type.toLowerCase()] || {
+    placement: '適切なセクションに配置',
+    purpose: 'コンテンツを視覚的に補完する',
+    tips: 'ページの目的に合わせて最適な場所に配置してください'
+  };
+};
+
 const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
@@ -440,24 +527,39 @@ const ImageGenerationForm: React.FC = () => {
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {suggestedPrompts.map((promptObj, index) => (
-                <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-                      {index + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 mb-1">
-                        {translateImageType(promptObj.type || promptObj.section || '画像')}
-                      </p>
-                      <p className="text-xs text-gray-600 line-clamp-2">
-                        {promptObj.description || promptObj.prompt}
-                      </p>
+            <div className="grid grid-cols-1 gap-3">
+              {suggestedPrompts.map((promptObj, index) => {
+                const guide = getImageUsageGuide(promptObj.type || promptObj.section || 'general');
+                return (
+                  <div key={index} className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                        {index + 1}
+                      </span>
+                      <div className="flex-1 min-w-0 space-y-2">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 mb-1">
+                            {translateImageType(promptObj.type || promptObj.section || '画像')}
+                          </p>
+                          <p className="text-xs text-gray-600 mb-2">
+                            {promptObj.description || promptObj.prompt}
+                          </p>
+                        </div>
+                        <div className="bg-white/60 border border-blue-200 rounded-md p-2 space-y-1 text-xs">
+                          <div className="flex items-start gap-1">
+                            <span className="font-semibold text-blue-900 whitespace-nowrap">📍</span>
+                            <span className="text-gray-700">{guide.placement}</span>
+                          </div>
+                          <div className="flex items-start gap-1">
+                            <span className="font-semibold text-blue-900 whitespace-nowrap">🎯</span>
+                            <span className="text-gray-700">{guide.purpose}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -496,9 +598,30 @@ const ImageGenerationForm: React.FC = () => {
                         </span>
                         {translateImageType(img.type || img.section || '画像')}
                       </h4>
-                      <p className="text-xs text-gray-600 line-clamp-2">
+                      <p className="text-xs text-gray-600 line-clamp-2 mb-3">
                         {img.description}
                       </p>
+
+                      {/* 配置場所と使用目的のガイダンス */}
+                      {(() => {
+                        const guide = getImageUsageGuide(img.type || img.section || 'general');
+                        return (
+                          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-3 space-y-2 text-xs">
+                            <div>
+                              <span className="font-semibold text-indigo-900">📍 配置場所：</span>
+                              <p className="text-gray-700 mt-0.5">{guide.placement}</p>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-indigo-900">🎯 使用目的：</span>
+                              <p className="text-gray-700 mt-0.5">{guide.purpose}</p>
+                            </div>
+                            <div>
+                              <span className="font-semibold text-indigo-900">💡 活用のコツ：</span>
+                              <p className="text-gray-700 mt-0.5">{guide.tips}</p>
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                     <button
                       onClick={() => handleDownload(img.image, `${img.type || 'image'}-${index + 1}.png`)}
