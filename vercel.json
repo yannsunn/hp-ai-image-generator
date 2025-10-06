@@ -55,6 +55,8 @@
     }
   ],
   "env": {
-    "FORCE_COLOR": "0"
+    "FORCE_COLOR": "0",
+    "ENABLE_EXPERIMENTAL_COREPACK": "1",
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
   }
 }
