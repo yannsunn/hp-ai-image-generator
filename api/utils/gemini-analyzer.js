@@ -68,14 +68,16 @@ URL: ${url}
 - プロンプトは英語で具体的かつ詳細に記述してください
 - 日本のビジネス文化に適した表現を使用してください
 - プロフェッショナルで高品質な画像生成を意識してください
-- 従業員数の判定について:
+- 従業員数の判定について（重要）:
   * コンテンツから従業員数の明示的な記載を探してください（「従業員数」「社員数」「スタッフ数」など）
-  * チーム紹介ページやメンバー紹介がある場合、その人数を参考にしてください
-  * 「代表」「個人事業主」「フリーランス」などの記述があれば solo
+  * チーム紹介ページやメンバー紹介がある場合、その人数を正確にカウントしてください
+  * 「代表」「個人事業主」「フリーランス」「一人社長」などの記述があれば solo (1人)
   * 「小規模」「少数精鋭」「2-5名」などの記述があれば small (2-5人)
   * 「中規模」「6-20名」などの記述があれば medium (6-20人)
   * 「大企業」「100名以上」などの記述があれば large (20名以上)
-  * 明確な情報がない場合は業界や事業内容から推測し、confidence を low に設定
+  * **重要**: 明確な証拠がない限り、デフォルトは solo (1人) にしてください
+  * confidence が low の場合は必ず solo にしてください
+  * 過大評価しないでください。不明な場合は少なめに見積もってください
 - JSONのみを返してください（説明文は不要）`;
 
     const result = await model.generateContent(analysisPrompt);
@@ -201,14 +203,16 @@ URL: ${url}
 - プロンプトは既存のビジュアルスタイルと調和するように最適化してください
 - 英語で具体的かつ詳細に記述してください
 - 日本のビジネス文化に適した表現を使用してください
-- 従業員数の判定について:
+- 従業員数の判定について（重要）:
   * スクリーンショットとテキストから従業員数の明示的な記載を探してください
   * チーム紹介ページやメンバー写真がある場合、その人数を正確にカウントしてください
-  * 「代表」「個人事業主」「フリーランス」などの記述があれば solo
-  * 「小規模」「少数精鋭」「2-5名」またはチーム写真が2-5人なら small
-  * 「中規模」「6-20名」またはチーム写真が6-20人なら medium
-  * 「大企業」「100名以上」またはチーム写真が20名以上なら large
-  * 明確な情報がない場合は業界や事業内容から推測し、confidence を low に設定
+  * 「代表」「個人事業主」「フリーランス」「一人社長」などの記述があれば solo (1人)
+  * 「小規模」「少数精鋭」「2-5名」またはチーム写真が2-5人なら small (2-5人)
+  * 「中規模」「6-20名」またはチーム写真が6-20人なら medium (6-20人)
+  * 「大企業」「100名以上」またはチーム写真が20名以上なら large (20名以上)
+  * **重要**: 明確な証拠がない限り、デフォルトは solo (1人) にしてください
+  * confidence が low の場合は必ず solo にしてください
+  * 過大評価しないでください。不明な場合は少なめに見積もってください
 - JSONのみを返してください（説明文は不要）`;
 
     // マルチモーダル分析: テキスト + 画像
@@ -315,15 +319,15 @@ function getFallbackAnalysis() {
     target_audience: 'general',
     key_features: ['professional website'],
     company_info: {
-      employee_count: null,
-      company_size: 'small',
+      employee_count: 1,
+      company_size: 'solo',
       size_confidence: 'low',
-      size_indicators: ['No employee information detected']
+      size_indicators: ['No employee information detected - defaulting to solo entrepreneur']
     },
     suggested_prompts: [
       {
         type: 'hero',
-        prompt: 'Professional Japanese business office, modern corporate environment, clean design, natural lighting, high quality photography, 8k resolution'
+        prompt: 'Professional Japanese business office, modern corporate environment, clean design, natural lighting, high quality photography, 8k resolution, no people'
       }
     ],
     image_recommendations: {
