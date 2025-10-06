@@ -16,7 +16,7 @@ module.exports = withErrorHandler(handler);
 
 async function generateAllImages(req, res) {
   try {
-    const { suggested_prompts, industry, url } = req.body;
+    const { suggested_prompts, industry, url, company_info } = req.body;
 
     if (!suggested_prompts || !Array.isArray(suggested_prompts) || suggested_prompts.length === 0) {
       return sendErrorResponse(res, 400, 'suggested_prompts配列が必要です');
@@ -44,7 +44,9 @@ async function generateAllImages(req, res) {
           {
             industry: industry || 'general',
             contentType: promptObj.type || 'general',
-            section: promptObj.section || promptObj.type
+            section: promptObj.section || promptObj.type,
+            companySize: company_info?.company_size,
+            employeeCount: company_info?.employee_count
           }
         );
 

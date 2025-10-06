@@ -10,14 +10,26 @@ function enhancePromptForJapan(prompt, context = {}) {
     'photorealistic',
     'high quality',
     'professional photography',
-    '8k resolution'
+    '8k resolution',
+    'no text',
+    'no words',
+    'no letters',
+    'no watermarks',
+    'no captions',
+    'no signage',
+    'text-free image',
+    'clean image without any text overlay'
   ];
-  
+
   const japaneseEnhancements = [
     'Japanese people',
     'East Asian features',
     'Japanese business setting',
-    'Tokyo office environment'
+    'Tokyo office environment',
+    'diverse facial features',
+    'varied appearances',
+    'different individuals',
+    'unique faces'
   ];
   
   // 業界別の追加要素
@@ -60,12 +72,48 @@ function enhancePromptForJapan(prompt, context = {}) {
     // 後方互換性のため単一のcontentTypeもサポート
     japaneseEnhancements.push(...contentTypeEnhancements[context.contentType]);
   }
-  
-  // ネガティブプロンプトを強化
-  const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic';
-  
+
+  // 会社規模に応じて人数を調整
+  const companySizeEnhancements = [];
+  if (context.companySize) {
+    switch (context.companySize) {
+      case 'solo':
+      case 'individual':
+        companySizeEnhancements.push('single Japanese business person', 'solo entrepreneur', 'independent professional', 'one person only');
+        break;
+      case 'small':
+        companySizeEnhancements.push('small Japanese team of 2-3 people', 'intimate group', 'small business team', 'each person with distinct features');
+        break;
+      case 'medium':
+        companySizeEnhancements.push('Japanese business team of 4-6 people', 'diverse team members', 'varied facial features', 'different age groups');
+        break;
+      case 'large':
+        companySizeEnhancements.push('large Japanese business team', 'corporate group', 'multiple diverse individuals', 'wide variety of faces');
+        break;
+    }
+  } else if (context.employeeCount) {
+    // 従業員数が明示的に指定されている場合
+    const count = parseInt(context.employeeCount);
+    if (count === 1) {
+      companySizeEnhancements.push('single Japanese business person', 'solo entrepreneur', 'one person only');
+    } else if (count <= 3) {
+      companySizeEnhancements.push(`exactly ${count} Japanese people`, 'small team', 'each person with distinct unique features', 'different facial characteristics');
+    } else if (count <= 10) {
+      companySizeEnhancements.push(`group of ${count} Japanese people`, 'diverse team members', 'varied appearances', 'unique individuals');
+    } else {
+      companySizeEnhancements.push('large Japanese business team', 'many diverse individuals', 'wide variety of faces and ages');
+    }
+  }
+
+  if (companySizeEnhancements.length > 0) {
+    japaneseEnhancements.push(...companySizeEnhancements);
+  }
+
+  // ネガティブプロンプトを強化（文字と重複する顔を除外）
+  const negativePrompt = 'negative prompt: low quality, blurry, distorted faces, bad anatomy, western faces, caucasian features, unrealistic, text, words, letters, captions, watermarks, signage, labels, typography, duplicate faces, identical people, cloned faces, same person repeated, copy-paste faces';
+
   const enhancedPrompt = `${prompt}, ${baseEnhancements.join(', ')}, ${japaneseEnhancements.join(', ')}, ${negativePrompt}`;
-  
+
   return enhancedPrompt;
 }
 

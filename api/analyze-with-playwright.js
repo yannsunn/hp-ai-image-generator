@@ -48,7 +48,9 @@ async function analyzeWithPlaywright(req, res) {
                 process.env.GEMINI_API_KEY,
                 {
                   industry: cachedResult.industry,
-                  contentType: cachedResult.content_type
+                  contentType: cachedResult.content_type,
+                  companySize: cachedResult.company_info?.company_size,
+                  employeeCount: cachedResult.company_info?.employee_count
                 }
               );
               generatedImage = {
@@ -97,7 +99,9 @@ async function analyzeWithPlaywright(req, res) {
             process.env.GEMINI_API_KEY,
             {
               industry: analysisResult.industry,
-              contentType: analysisResult.content_type
+              contentType: analysisResult.content_type,
+              companySize: analysisResult.company_info?.company_size,
+              employeeCount: analysisResult.company_info?.employee_count
             }
           );
 
@@ -127,6 +131,7 @@ async function analyzeWithPlaywright(req, res) {
       visual_analysis: analysisResult.visual_analysis || null,
       target_audience: analysisResult.target_audience,
       key_features: analysisResult.key_features || [],
+      company_info: analysisResult.company_info || null,
       suggested_prompts: analysisResult.suggested_prompts || [],
       suggested_prompt: analysisResult.suggested_prompt,
       image_recommendations: analysisResult.image_recommendations || {},
@@ -220,6 +225,7 @@ async function analyzeWithPlaywrightAndGemini(url) {
           visual_analysis: analysisData.visual_analysis || null,
           target_audience: analysisData.target_audience || 'general',
           key_features: analysisData.key_features || [],
+          company_info: analysisData.company_info || null,
           suggested_prompts: analysisData.suggested_prompts || [],
           suggested_prompt: suggestedPrompt,
           image_recommendations: analysisData.image_recommendations || {},
@@ -313,6 +319,7 @@ async function analyzeWithCheerioFallback(url) {
       visual_style: analysisData.visual_style || {},
       target_audience: analysisData.target_audience || 'general',
       key_features: analysisData.key_features || [],
+      company_info: analysisData.company_info || null,
       suggested_prompts: analysisData.suggested_prompts || [],
       suggested_prompt: suggestedPrompt,
       image_recommendations: analysisData.image_recommendations || {}

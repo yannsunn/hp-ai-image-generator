@@ -302,7 +302,8 @@ const ImageGenerationForm: React.FC = () => {
         body: JSON.stringify({
           suggested_prompts: suggestedPrompts,
           industry: analysisData?.industry,
-          url: url
+          url: url,
+          company_info: analysisData?.company_info
         })
       });
 

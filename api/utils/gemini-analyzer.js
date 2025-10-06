@@ -37,6 +37,12 @@ URL: ${url}
   },
   "target_audience": "ターゲット層（corporate/individual/b2b/b2c/general）",
   "key_features": ["サイトの主要な特徴1", "特徴2", "特徴3"],
+  "company_info": {
+    "employee_count": 従業員数（数値、不明な場合はnull）,
+    "company_size": "会社規模（solo/small/medium/large）",
+    "size_confidence": "規模判定の確信度（high/medium/low）",
+    "size_indicators": ["規模を判断した根拠1", "根拠2"]
+  },
   "suggested_prompts": [
     {
       "type": "hero",
@@ -62,6 +68,14 @@ URL: ${url}
 - プロンプトは英語で具体的かつ詳細に記述してください
 - 日本のビジネス文化に適した表現を使用してください
 - プロフェッショナルで高品質な画像生成を意識してください
+- 従業員数の判定について:
+  * コンテンツから従業員数の明示的な記載を探してください（「従業員数」「社員数」「スタッフ数」など）
+  * チーム紹介ページやメンバー紹介がある場合、その人数を参考にしてください
+  * 「代表」「個人事業主」「フリーランス」などの記述があれば solo
+  * 「小規模」「少数精鋭」「2-5名」などの記述があれば small (2-5人)
+  * 「中規模」「6-20名」などの記述があれば medium (6-20人)
+  * 「大企業」「100名以上」などの記述があれば large (20名以上)
+  * 明確な情報がない場合は業界や事業内容から推測し、confidence を low に設定
 - JSONのみを返してください（説明文は不要）`;
 
     const result = await model.generateContent(analysisPrompt);
@@ -132,6 +146,7 @@ URL: ${url}
 - レイアウトとビジュアル階層
 - 既存の画像の雰囲気とトーン
 - UI/UXデザインの特徴
+- チームページや会社紹介に表示されている人数
 
 以下の情報をJSON形式で返してください:
 {
@@ -147,6 +162,12 @@ URL: ${url}
   },
   "target_audience": "ターゲット層（corporate/individual/b2b/b2c/general）",
   "key_features": ["サイトの主要な特徴1", "特徴2", "特徴3"],
+  "company_info": {
+    "employee_count": 従業員数（数値、不明な場合はnull）,
+    "company_size": "会社規模（solo/small/medium/large）",
+    "size_confidence": "規模判定の確信度（high/medium/low）",
+    "size_indicators": ["規模を判断した根拠1", "根拠2"]
+  },
   "visual_analysis": {
     "color_scheme": "実際のカラースキームの詳細",
     "layout_style": "レイアウトの特徴",
@@ -180,6 +201,14 @@ URL: ${url}
 - プロンプトは既存のビジュアルスタイルと調和するように最適化してください
 - 英語で具体的かつ詳細に記述してください
 - 日本のビジネス文化に適した表現を使用してください
+- 従業員数の判定について:
+  * スクリーンショットとテキストから従業員数の明示的な記載を探してください
+  * チーム紹介ページやメンバー写真がある場合、その人数を正確にカウントしてください
+  * 「代表」「個人事業主」「フリーランス」などの記述があれば solo
+  * 「小規模」「少数精鋭」「2-5名」またはチーム写真が2-5人なら small
+  * 「中規模」「6-20名」またはチーム写真が6-20人なら medium
+  * 「大企業」「100名以上」またはチーム写真が20名以上なら large
+  * 明確な情報がない場合は業界や事業内容から推測し、confidence を low に設定
 - JSONのみを返してください（説明文は不要）`;
 
     // マルチモーダル分析: テキスト + 画像
@@ -285,6 +314,12 @@ function getFallbackAnalysis() {
     },
     target_audience: 'general',
     key_features: ['professional website'],
+    company_info: {
+      employee_count: null,
+      company_size: 'small',
+      size_confidence: 'low',
+      size_indicators: ['No employee information detected']
+    },
     suggested_prompts: [
       {
         type: 'hero',
