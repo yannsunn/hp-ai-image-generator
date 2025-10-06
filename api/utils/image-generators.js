@@ -5,29 +5,39 @@ const logger = require('./logger');
 // 日本向けプロンプトの強化
 function enhancePromptForJapan(prompt, context = {}) {
 
-  // 日本向けの明確な指示を追加
+  // 日本向けの明確な指示を追加（テキスト除外を最優先）
   const baseEnhancements = [
     'photorealistic',
     'high quality',
     'professional photography',
     '8k resolution',
+    // テキスト除外（最優先・複数回強調）
+    'ABSOLUTELY NO TEXT',
+    'COMPLETELY TEXT-FREE',
+    'absolutely no text whatsoever',
+    'absolutely no words',
+    'absolutely no letters',
+    'absolutely no japanese text',
+    'absolutely no english text',
+    'absolutely no watermarks',
+    'absolutely no captions',
+    'absolutely no signage',
+    'absolutely no typography',
+    'absolutely no written content',
+    'absolutely no labels',
+    'absolutely no numbers',
+    'absolutely no symbols',
+    'absolutely no characters',
+    'pure visual imagery only',
+    'image only without any text',
+    'clean image without any text overlay',
+    'text-free composition',
+    'no textual elements',
+    // ブランド除外
     'generic and brand-free',
     'no recognizable brands',
     'no company logos',
     'no trademarks',
-    'absolutely no text',
-    'absolutely no words',
-    'absolutely no letters',
-    'absolutely no watermarks',
-    'absolutely no captions',
-    'absolutely no signage',
-    'completely text-free image',
-    'clean image without any text overlay',
-    'no typography',
-    'no written content',
-    'no labels',
-    'no numbers',
-    'no symbols',
     'brand-neutral imagery'
   ];
 
@@ -81,19 +91,26 @@ function enhancePromptForJapan(prompt, context = {}) {
     }
   }
 
-  // ネガティブプロンプトを構築（商標・ブランド保護を最優先）
+  // ネガティブプロンプトを構築（テキスト除外を最優先）
   let negativePrompt = 'negative prompt: low quality, blurry, distorted, bad anatomy, unrealistic';
 
-  // **商標・ブランド除外（最重要）**
+  // **テキスト・文字の完全除外（最優先・最重要）**
+  // Geminiはテキスト生成が苦手で、特に日本語は崩れるため、完全に除外する
+  negativePrompt += ', text, TEXT, words, WORDS, letters, LETTERS, numbers, NUMBERS';
+  negativePrompt += ', japanese text, japanese characters, kanji, hiragana, katakana, romaji';
+  negativePrompt += ', english text, alphabet, alphanumeric, numeric characters';
+  negativePrompt += ', captions, watermarks, signage, labels, typography, written content, writing, script';
+  negativePrompt += ', any text overlay, any written words, any characters, any symbols, any alphanumeric content';
+  negativePrompt += ', UI elements with text, buttons with text, signs with text, packaging with text, screens with text';
+  negativePrompt += ', text on products, text on walls, text on screens, text on signs, text on labels';
+  negativePrompt += ', readable text, unreadable text, garbled text, corrupted text, broken text';
+  negativePrompt += ', DX, SME, any abbreviations, any acronyms, any letter combinations';
+
+  // **商標・ブランド除外（重要）**
   negativePrompt += ', logos, brand logos, company logos, trademarks, brand names, company names, corporate branding';
   negativePrompt += ', Amazon, Google, Apple, Microsoft, Facebook, Meta, Twitter, Instagram, YouTube, Netflix, Tesla, Nike, Adidas';
   negativePrompt += ', McDonald, Starbucks, Coca-Cola, Pepsi, Samsung, Sony, Toyota, Honda, BMW, Mercedes';
   negativePrompt += ', any recognizable brands, any corporate logos, any trademarked symbols, branded products';
-
-  // **テキスト・文字の完全除外**
-  negativePrompt += ', text, words, letters, numbers, captions, watermarks, signage, labels, typography, written content';
-  negativePrompt += ', any text overlay, any written words, any characters, any symbols, any alphanumeric content';
-  negativePrompt += ', UI elements with text, buttons with text, signs with text, packaging with text, screens with text';
 
   if (needsPeople) {
     // 人物が必要な場合は重複する顔を除外
