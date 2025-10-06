@@ -53,16 +53,10 @@ URL: ${url}
   },
   "suggested_prompts": [
     {
-      "type": "hero",
-      "prompt": "ヒーロー画像用の詳細な英語プロンプト（**絶対にテキストなし**、人物なし、モダンでミニマルなスタイル優先）"
-    },
-    {
-      "type": "service",
-      "prompt": "サービス紹介用の詳細な英語プロンプト（**絶対にテキストなし**、人物なし優先）"
-    },
-    {
-      "type": "about",
-      "prompt": "会社紹介用の詳細な英語プロンプト（**絶対にテキストなし**、人物は最小限）"
+      "type": "セクションの種類（hero/service/about/feature/team/testimonial/portfolio/contact/cta/process/pricing/faq/news/footer/banner など）",
+      "section": "より具体的なセクション名",
+      "description": "この画像の用途説明（日本語）",
+      "prompt": "詳細な英語プロンプト（**絶対にテキストなし**を必ず含める）"
     }
   ],
   "image_recommendations": {
@@ -95,6 +89,14 @@ URL: ${url}
 - **muted**: 高級感、コンサルティング、金融、法律 → 落ち着いた彩度の低い色
 - **monochrome**: ミニマリスト、建築、デザイン事務所 → 白黒やグレースケール
 - **corporate**: B2B、大企業、製造業 → ネイビー、グレー、ブルーなど企業カラー
+
+**suggested_promptsの制限解除（重要）:**
+- **3つではなく、ホームページの各セクションすべてに画像を提案してください（5-15個が目安）**
+- 必須: hero（メインビジュアル）
+- コンテンツに応じて追加: service, about, feature, team, testimonial, portfolio, contact, cta, process, pricing, faq, news, footer, banner など
+- 各セクションに最適な画像を提案し、すべてのプロンプトに「**absolutely no text**」を含めてください
+- 実際のホームページ構成を分析して、必要な箇所すべてを提案してください
+
 - 従業員数の判定について（重要）:
   * コンテンツから従業員数の明示的な記載を探してください（「従業員数」「社員数」「スタッフ数」など）
   * チーム紹介ページやメンバー紹介がある場合、その人数を正確にカウントしてください
@@ -223,16 +225,10 @@ URL: ${url}
   },
   "suggested_prompts": [
     {
-      "type": "hero",
-      "prompt": "既存のビジュアルスタイルに合わせたヒーロー画像用の詳細な英語プロンプト（**絶対にテキストなし**、純粋なビジュアルのみ）"
-    },
-    {
-      "type": "service",
-      "prompt": "サービス紹介用の詳細な英語プロンプト（**絶対にテキストなし**、純粋なビジュアルのみ）"
-    },
-    {
-      "type": "about",
-      "prompt": "会社紹介用の詳細な英語プロンプト（**絶対にテキストなし**、純粋なビジュアルのみ）"
+      "type": "セクションの種類（hero/service/about/feature/team/testimonial/portfolio/contact/cta/process/pricing/faq/news/footer/banner など）",
+      "section": "より具体的なセクション名",
+      "description": "この画像の用途説明（日本語）",
+      "prompt": "既存のビジュアルスタイルに合わせた詳細な英語プロンプト（**絶対にテキストなし**を必ず含める）"
     }
   ],
   "image_recommendations": {
@@ -252,6 +248,14 @@ URL: ${url}
 - **既存画像分析が最優先**: 既存のホームページに使用されている画像スタイルを正確に把握してください
 - **既存サイトの品質を評価**: デザインの洗練度からstyle_levelを判断してください
 - **既存カラーに合わせる**: スクリーンショットの色調からcolor_paletteを選んでください
+
+**suggested_promptsの制限解除（重要）:**
+- **3つではなく、スクリーンショットから判断してホームページの各セクションすべてに画像を提案してください（5-15個が目安）**
+- 必須: hero（メインビジュアル）
+- コンテンツに応じて追加: service, about, feature, team, testimonial, portfolio, contact, cta, process, pricing, faq, news, footer, banner など
+- 各セクションに最適な画像を提案し、すべてのプロンプトに「**absolutely no text**」を含めてください
+- スクリーンショットの構成を分析して、必要な箇所すべてを提案してください
+
 - **人物判定のルール**:
   * 既存画像に人物写真が少ない（30%未満）場合: 生成画像も人物なしを推奨
   * 既存画像が主にイラスト/3D/抽象的な場合: 同じスタイルを推奨
