@@ -14,9 +14,9 @@ const App: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                AI画像生成システム
+                HP用画像生成システム
               </h1>
-              <p className="text-sm text-gray-500">ホームページ用の高品質な画像を自動生成</p>
+              <p className="text-sm text-gray-500">ホームページ制作に特化したAI画像自動生成</p>
             </div>
           </div>
         </div>
@@ -85,14 +85,14 @@ const App: React.FC = () => {
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
               <span className="text-lg font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                AI画像生成システム
+                HP用画像生成システム
               </span>
             </div>
             <p className="text-sm text-gray-600">
               Powered by Gemini 2.5 Flash Image API
             </p>
             <p className="text-xs text-gray-400">
-              © {new Date().getFullYear()} AI Image Generation System. All rights reserved.
+              © {new Date().getFullYear()} HP用画像生成システム. All rights reserved.
             </p>
           </div>
         </div>
