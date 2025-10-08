@@ -1,5 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Loader2, Sparkles, Download, CheckCircle2, AlertCircle, ExternalLink, Maximize2 } from 'lucide-react';
+import type {
+  SuggestedPrompt,
+  AnalysisData,
+  GeneratedImageData,
+  StyleLevel,
+  ColorPalette
+} from '../types';
 
 // 画像タイプの日本語変換
 const imageTypeLabels: Record<string, string> = {
@@ -154,9 +161,9 @@ const ImageGenerationForm: React.FC = () => {
   const [url, setUrl] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [generatedImages, setGeneratedImages] = useState<any[]>([]);
-  const [suggestedPrompts, setSuggestedPrompts] = useState<any[]>([]);
-  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [generatedImages, setGeneratedImages] = useState<GeneratedImageData[]>([]);
+  const [suggestedPrompts, setSuggestedPrompts] = useState<SuggestedPrompt[]>([]);
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
   const [error, setError] = useState<string>('');
   const [analysisInfo, setAnalysisInfo] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -167,11 +174,11 @@ const ImageGenerationForm: React.FC = () => {
   const [newApiKey, setNewApiKey] = useState<string>('');
 
   // 画像生成設定
-  const [selectedStyleLevel, setSelectedStyleLevel] = useState<string>('standard');
-  const [selectedColorPalette, setSelectedColorPalette] = useState<string>('vibrant');
+  const [selectedStyleLevel, setSelectedStyleLevel] = useState<StyleLevel>('standard');
+  const [selectedColorPalette, setSelectedColorPalette] = useState<ColorPalette>('vibrant');
 
-  // Vercelプロテクションバイパス用のヘッダー
-  const getBypassHeaders = () => {
+  // Vercelプロテクションバイパス用のヘッダー (useMemo for performance)
+  const bypassHeaders = useMemo(() => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
@@ -182,7 +189,7 @@ const ImageGenerationForm: React.FC = () => {
     }
 
     return headers;
-  };
+  }, []);
 
   // URLを分析
   const handleAnalyze = async () => {
@@ -205,7 +212,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/analyze-with-playwright', {
         method: 'POST',
-        headers: getBypassHeaders(),
+        headers: bypassHeaders,
         body: JSON.stringify({
           url,
           generateImage: false
@@ -310,7 +317,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/generate-all-images', {
         method: 'POST',
-        headers: getBypassHeaders(),
+        headers: bypassHeaders,
         body: JSON.stringify({
           suggested_prompts: suggestedPrompts,
           industry: analysisData?.industry,
@@ -377,21 +384,21 @@ const ImageGenerationForm: React.FC = () => {
     }
   };
 
-  // 画像をダウンロード
-  const handleDownload = (imageUrl: string, filename?: string) => {
+  // 画像をダウンロード (useCallback for performance)
+  const handleDownload = useCallback((imageUrl: string, filename?: string) => {
     const link = document.createElement('a');
     link.href = imageUrl;
     link.download = filename || `ai-generated-${Date.now()}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
+  }, []);
 
-  // モーダルで画像を表示
-  const openImageModal = (imageUrl: string) => {
+  // モーダルで画像を表示 (useCallback for performance)
+  const openImageModal = useCallback((imageUrl: string) => {
     setSelectedImage(imageUrl);
     setShowImageModal(true);
-  };
+  }, []);
 
   // APIキーを更新
   const handleUpdateApiKey = async () => {
@@ -403,7 +410,7 @@ const ImageGenerationForm: React.FC = () => {
     try {
       const response = await fetch('/api/emergency/update-api-key', {
         method: 'POST',
-        headers: getBypassHeaders(),
+        headers: bypassHeaders,
         body: JSON.stringify({ apiKey: newApiKey })
       });
 
@@ -536,7 +543,7 @@ const ImageGenerationForm: React.FC = () => {
               </label>
               <select
                 value={selectedStyleLevel}
-                onChange={(e) => setSelectedStyleLevel(e.target.value)}
+                onChange={(e) => setSelectedStyleLevel(e.target.value as StyleLevel)}
                 className="w-full px-4 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
               >
                 <option value="standard">Standard - シンプルでクリーン</option>
@@ -562,7 +569,7 @@ const ImageGenerationForm: React.FC = () => {
               </label>
               <select
                 value={selectedColorPalette}
-                onChange={(e) => setSelectedColorPalette(e.target.value)}
+                onChange={(e) => setSelectedColorPalette(e.target.value as ColorPalette)}
                 className="w-full px-4 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white text-gray-900"
               >
                 <option value="vibrant">Vibrant - 鮮やかで活気のある色</option>

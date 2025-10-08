@@ -1,4 +1,81 @@
-// Frontend specific types
+// Core types for the application
+export interface SuggestedPrompt {
+  type: string;
+  section?: string;
+  prompt: string;
+  description?: string;
+}
+
+export interface AnalysisData {
+  success: boolean;
+  industry?: string;
+  content_type?: string;
+  suggested_prompts?: SuggestedPrompt[];
+  company_info?: Record<string, any>;
+  existing_images?: string[];
+  recommended_style_level?: StyleLevel;
+  recommended_color_palette?: ColorPalette;
+  style_level_reasoning?: string;
+  color_palette_reasoning?: string;
+  from_cache?: boolean;
+}
+
+export interface GeneratedImageData {
+  image: string;
+  type?: string;
+  section?: string;
+  description?: string;
+}
+
+export interface GenerationResponse {
+  success: boolean;
+  images?: GeneratedImageData[];
+  error?: string;
+}
+
+export type StyleLevel = 'standard' | 'premium' | 'luxury';
+export type ColorPalette = 'vibrant' | 'muted' | 'monochrome' | 'corporate';
+
+// API Request/Response types
+export interface AnalyzeUrlRequest {
+  url: string;
+  generateImage: boolean;
+}
+
+export interface AnalyzeUrlResponse {
+  success: boolean;
+  url?: string;
+  title?: string;
+  industry?: string;
+  content_type?: string;
+  suggested_prompts?: SuggestedPrompt[];
+  company_info?: Record<string, any>;
+  existing_images?: string[];
+  recommended_style_level?: StyleLevel;
+  recommended_color_palette?: ColorPalette;
+  style_level_reasoning?: string;
+  color_palette_reasoning?: string;
+  from_cache?: boolean;
+  error?: string;
+}
+
+export interface GenerateAllImagesRequest {
+  suggested_prompts: SuggestedPrompt[];
+  industry?: string;
+  url: string;
+  company_info?: Record<string, any>;
+  existing_images?: string[];
+  style_level: StyleLevel;
+  color_palette: ColorPalette;
+}
+
+export interface GenerateAllImagesResponse {
+  success: boolean;
+  images?: GeneratedImageData[];
+  error?: string;
+}
+
+// Legacy types (for backward compatibility)
 export interface ImageGenerationFormData {
   url: string;
   targetAudience?: string;
@@ -60,7 +137,6 @@ export interface LoadingState {
   progress?: number;
 }
 
-// Additional types for ImageGenerationForm component
 export interface Industry {
   value: string;
   label: string;
@@ -113,82 +189,6 @@ export interface ImageHistory {
     createdAt: string;
     analysis?: any;
   };
-}
-
-export interface GenerationResponse {
-  success: boolean;
-  image?: string;
-  images?: Array<{
-    image: string;
-    metadata: {
-      original_prompt: string;
-      enhanced_prompt: string;
-      api_used: string;
-      cost: number;
-      analysis?: any;
-    };
-  }>;
-  metadata?: {
-    original_prompt: string;
-    enhanced_prompt: string;
-    api_used: string;
-    cost: number;
-    analysis?: any;
-  };
-  total_cost?: number;
-  error?: string;
-  details?: string;
-}
-
-export interface AnalysisResponse {
-  success: boolean;
-  url?: string;
-  title?: string;
-  analysis?: PromptAnalysis;
-  content?: UrlContent;
-  suggested_prompt?: string;
-  suggested_prompts?: Array<{
-    type: string;
-    prompt: string;
-  }>;
-  industry?: string;
-  content_type?: string;
-  detected_content_types?: string[];
-  detected_themes?: string[];
-  pages_analyzed?: number;
-  pages_found?: number;
-  industry_confidence?: 'high' | 'medium' | 'low';
-  main_themes?: string[];
-  visual_style?: {
-    tone: string;
-    atmosphere: string[];
-    color_hints?: string[];
-    design_style?: string;
-  };
-  visual_analysis?: {
-    color_scheme?: string;
-    layout_style?: string;
-    image_style?: string;
-    ui_elements?: string;
-  };
-  target_audience?: string;
-  key_features?: string[];
-  image_recommendations?: {
-    composition?: string;
-    lighting?: string;
-    perspective?: string;
-    style_match?: string;
-  };
-  generated_image?: {
-    image: string;
-    cost: number;
-    model: string;
-  };
-  screenshot?: string;
-  analysis_method?: string;
-  method?: string;
-  analyzed_at?: string;
-  error?: string;
 }
 
 export interface SaveImageResponse {
