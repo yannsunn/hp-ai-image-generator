@@ -28,7 +28,8 @@ const imageTypeLabels: Record<string, string> = {
 };
 
 // 英語のタイプを日本語に変換
-const translateImageType = (type: string): string => {
+const translateImageType = (type: string | undefined): string => {
+  if (!type) return '画像';
   return imageTypeLabels[type.toLowerCase()] || type;
 };
 
@@ -52,7 +53,8 @@ const industryLabels: Record<string, string> = {
   'other': 'その他'
 };
 
-const translateIndustry = (industry: string): string => {
+const translateIndustry = (industry: string | undefined): string => {
+  if (!industry) return 'その他';
   return industryLabels[industry.toLowerCase()] || industry;
 };
 
@@ -66,7 +68,8 @@ const contentTypeLabels: Record<string, string> = {
   'general': '一般'
 };
 
-const translateContentType = (type: string): string => {
+const translateContentType = (type: string | undefined): string => {
+  if (!type) return '一般';
   return contentTypeLabels[type.toLowerCase()] || type;
 };
 
@@ -149,7 +152,14 @@ const imageUsageGuide: Record<string, { placement: string; purpose: string; tips
   }
 };
 
-const getImageUsageGuide = (type: string) => {
+const getImageUsageGuide = (type: string | undefined) => {
+  if (!type) {
+    return {
+      placement: '適切なセクションに配置',
+      purpose: 'コンテンツを視覚的に補完する',
+      tips: 'ページの目的に合わせて最適な場所に配置してください'
+    };
+  }
   return imageUsageGuide[type.toLowerCase()] || {
     placement: '適切なセクションに配置',
     purpose: 'コンテンツを視覚的に補完する',
